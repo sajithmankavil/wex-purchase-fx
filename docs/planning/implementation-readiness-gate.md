@@ -58,7 +58,7 @@ Rationale: every P0 across Phases 2/4/6/8 is closed or pinned at gate exit (18 o
 | **P1 findings resolved or explicitly accepted** | ✅ | ~30 closed in-phase; ~20 tracked in [p1-deferrals-acceptance.md](p1-deferrals-acceptance.md) with named owners + target gates (Phase 12 / 13) |
 | Security model reviewed | ✅ | [threat-model.md](../security/threat-model.md) + 14 docs in `docs/security/` + Phase-8 adversarial grill |
 | Operations model reviewed | ✅ | 10 docs in `docs/operations/` + Phase-6 adversarial grill + [operational-readiness-gate.md](../operations/operational-readiness-gate.md) verdict CONDITIONAL_PASS |
-| Test strategy reviewed | ✅ | AC-T-1..AC-T-6 + per-component test plan in [component-design.md §8](../architecture/component-design.md); per-class mutation thresholds (≥ 85 % on `RateSelectionPolicy`, `Money`); WireMock fixtures specified |
+| Test strategy reviewed | ✅ | AC-T-1..AC-T-6 + per-component test plan in [component-design.md §8](../architecture/component-design.md); per-class mutation thresholds (≥ 85 % on `RateSelectionPolicy`, `Money`); WireMock fixtures specified; consolidated in [../release/test-plan.md](../release/test-plan.md) (M-1 closure 2026-05-17) |
 
 ### 1.4 Implementation plan
 
@@ -371,3 +371,9 @@ Per [.human-approvals/README.md](../../.human-approvals/README.md):
 - All `docs/requirements/`, `docs/architecture/`, `docs/operations/`, `docs/security/` artefacts
 - [.human-approvals/README.md](../../.human-approvals/README.md) — human-approval marker requirements
 - [CLAUDE.md](../../CLAUDE.md) §3 + §6A — implementation-blocking rules
+
+---
+
+## 15. M-1 closure (2026-05-17)
+
+M-1 was raised by an external governance review on 2026-05-17 as the single pre-approval finding on this Phase 9 gate: `docs/release/test-plan.md` was a TBD-everywhere stub even though the substantive test plan was already authored across `docs/architecture/component-design.md §8`, `docs/requirements/acceptance-criteria.md`, `docs/operations/capacity-scalability-plan.md §5`, `docs/security/secure-sdlc-pci.md §1`, and `docs/security/logging-monitoring-pci.md §5`. The gate prompt explicitly instructs *"Update: `docs/release/test-plan.md` if gaps remain."* That instruction is now satisfied: [`docs/release/test-plan.md`](../release/test-plan.md) has been authored as a consolidating release-gate index that cross-references the authoritative sources without duplicating them, and the Test-strategy row in §1.3 above carries a pointer to the now-authored release artefact. The Phase 9 gate verdict remains **READY_FOR_HUMAN_APPROVAL** with the Phase-12 conditions in §11; no new findings, ACs, or decisions were introduced by this closure.
