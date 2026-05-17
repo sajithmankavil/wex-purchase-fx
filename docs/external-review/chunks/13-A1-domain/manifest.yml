@@ -1,8 +1,12 @@
 chunk_id: 13-A1-domain
-status: under_review
+status: under_review   # code-correctness ACCEPTED 2026-05-17; flips to "accepted" after rebase CI is green
 prompt_sha: 07434b2edbaaaf41eb75acfc7f190dd6d6022f37
 summary_sha: 3f51a053a8529c83b01a8e89a236752c05584be3
+review_sha: cc33b445add52e1428fb5b00ad42674d5c4ccfd4
 pr: 2
-ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/25999465787
-deviations_open: [ops-check-strict-flip]
-next_chunk: 13-PRE-readiness-check-fix
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/25999465787   # RED (pre-rebase, pre-fix-merge)
+ci_url_post_rebase: null   # set when rebased CI run is green; flips status to accepted
+deviations_open: [ops-check-strict-flip]   # resolves to [] after PR #4 merges to main + this branch rebases
+review_conditions: [rebase-on-main-after-PR-4-merges, green-ci-on-rebased-branch]
+follow_ups: []
+next_chunk: 13-A2-application
