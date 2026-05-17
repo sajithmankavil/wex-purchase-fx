@@ -1,12 +1,15 @@
 chunk_id: 13-B-infrastructure
-status: prompt_received
-prompt_sha: null  # set by implementer via `git hash-object 00-prompt.md` after this commit
+status: deviation_surfaced
+prompt_sha: b11aaca0124d1002bf0d71aa111b99be65a0fd7c
+clarification_sha: 8d47bb245b91038d116db772d3caf58edc3b1f71  # 15-clarification.md (A2 intake items)
+deviation_sha: 6a0bd0b980327e59c9915f5c503ea52ae5d5faa8     # 10-deviation.md (B1/B2 split proposal)
 summary_sha: null
 review_sha: null
 pr: null
 ci_url: null
-deviations_open: []
-review_conditions: []
+deviations_open: [capacity-overage-proposed-b1-b2-split]
+review_conditions: [pom-coverage-mutation-extension-for-application, hot-cache-upsert-invalidation-contract]  # carry-over from A2
 follow_ups: []
 next_chunk: 13-C-api-observability
-depends_on: [13-A2-application]   # cannot start until A2 merges to main
+depends_on: [13-A2-application]
+depends_on_satisfied: true  # A2 merged to main 2026-05-17 (PR #5)

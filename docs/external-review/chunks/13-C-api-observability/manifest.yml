@@ -1,12 +1,13 @@
 chunk_id: 13-C-api-observability
 status: prompt_received
-prompt_sha: null  # set by implementer via `git hash-object 00-prompt.md` after this commit
+prompt_sha: 9f49a43f0b172161c45ea950533983427ef106d8
+clarification_sha: b7b5dfebd81b303a96cc33893a06924753447517  # 15-clarification.md (1 A2 intake item)
 summary_sha: null
 review_sha: null
 pr: null
 ci_url: null
 deviations_open: []
-review_conditions: []
+review_conditions: [api-layer-currency-input-hashing-on-emit]  # carry-over from A2
 follow_ups: []
 next_chunk: null   # final chunk in Phase 13; after merge, Phase 13 is closed; next phase is 10 (Operational Readiness Gate)
-depends_on: [13-B-infrastructure]   # cannot start until B merges to main
+depends_on: [13-B-infrastructure]

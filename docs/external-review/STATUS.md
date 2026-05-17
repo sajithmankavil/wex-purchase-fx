@@ -7,9 +7,9 @@
 | 13-PRE-dossier-bootstrap | accepted | #3 (squash) | `b762bec` | — closed |
 | 13-PRE-readiness-check-fix | accepted | #4 (squash) | `fdfe8e9` | — closed |
 | 13-A1-domain | accepted | #2 (rebase) | `04f19aa` (plant `3e03380` + revert `04f19aa` preserved) | — closed |
-| 13-A2-application | accepted (with conditions) | #5 | — (PR open) | merge PR #5; B picks up the 2 B-scoped conditions, C picks up the 1 C-scoped condition |
-| 13-B-infrastructure | prompt_received | — | — | starts after A2 merges; intake conditions in `chunks/13-B-infrastructure/15-clarification.md` |
-| 13-C-api-observability | prompt_received | — | — | starts after B merges; intake condition in `chunks/13-C-api-observability/15-clarification.md` |
+| 13-A2-application | accepted | #5 (rebase) | `48dc656` + dossier follow-ups | — closed |
+| 13-B-infrastructure | deviation_surfaced | — | — | reviewer responds to `chunks/13-B-infrastructure/10-deviation.md` (B1/B2 split proposal) |
+| 13-C-api-observability | prompt_received | — | — | starts after B (or B2) merges; intake condition in `chunks/13-C-api-observability/15-clarification.md` |
 
 Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded`.
 
@@ -19,9 +19,9 @@ Status enum: `prompt_received | deviation_surfaced | implementing | summary_post
 13-PRE-dossier-bootstrap        ← accepted, merged b762bec
 13-PRE-readiness-check-fix      ← accepted, merged fdfe8e9
 13-A1-domain                    ← accepted, merged 04f19aa (plant+revert preserved)
-13-A2-application               ← accepted (with conditions), PR #5 open — 2 conditions scope-tagged to B, 1 to C
-13-B-infrastructure             ← prompt_received (pre-staged) — must fold in A2's 2 B-scoped conditions on intake
-13-C-api-observability          ← prompt_received (pre-staged) — must fold in A2's 1 C-scoped condition on intake — final chunk
+13-A2-application               ← accepted, merged 48dc656
+13-B-infrastructure             ← deviation_surfaced — proposed B1/B2 split (LOC overage ~2,800 vs hard 1,800)
+13-C-api-observability          ← prompt_received (pre-staged) — final chunk
 ```
 
 ## Autonomous-handoff protocol (added 2026-05-17)
@@ -46,6 +46,8 @@ True file-watch ("watch for each other and go") requires a GitHub Action on `doc
 
 ## Recent implementer activity
 
+- 2026-05-17 — Surfaced LOC-overage deviation on `13-B-infrastructure` before implementation began. Honest estimate ~2,800 LOC across 5 adapters + Liquibase + 12 ITs + 2 A2 intake items vs the 1,800 hard upper bound. Proposed B1/B2 split along the persistence/concurrency seam in `chunks/13-B-infrastructure/10-deviation.md`. Manifest flipped to `deviation_surfaced`. Awaiting reviewer (a) accept-split / (b) accept-unsplit-with-relaxed-cap / (c) alternative-split.
+- 2026-05-17 — Merged PR #5 (A2) rebase strategy; commit `48dc656` on main. A2 manifest flipped `summary_posted → accepted` once reviewer 30-review.md landed; pulled reviewer's STATUS.md + manifest updates + 30-review.md + B/C 15-clarification.md files into the PR before merge per dossier convention.
 - 2026-05-17 — Ran full merge sequence per `30-review-v2.md`: PR #4 → PR #3 → rebase A1 → PR #2. All four merged. A1's `manifest.status` flipped to `accepted` under forward-motion bias (mechanical transition; substantive review was `30-review.md` §1-§4). Started A2 on `feature/chunk-a2-application`; flipped A2 manifest to `implementing`.
 - 2026-05-17 — Pushed back on the §5 line-ending finding in `chunks/13-PRE-dossier-bootstrap/30-review.md`. Actual PR #3 diff on origin is `+790 / -0` across 13 new files (no churn). Evidence in `chunks/13-PRE-dossier-bootstrap/35-clarification.md`. Reviewer withdrew the finding in `30-review-v2.md`.
 
