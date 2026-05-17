@@ -1,0 +1,12 @@
+chunk_id: 13-PRE-readiness-check-fix
+status: accepted
+prompt_sha: 9c056a30c0563b1cef13292e7c5808df43a723c5
+summary_sha: ac264c213e0962a04bf00c9a470ca8eb578b1106
+review_sha: 010d31395a0f0000df4597a1bbf25df7629b01a3
+pr: 4
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26000104744
+independent_pytest: passed (reviewer sandbox, 7/7 tests, 2026-05-17)
+deviations_open: []
+review_conditions: []
+follow_ups: [wire-pytest-into-ci-as-separate-chunk]  # see 30-review.md §4
+next_chunk: 13-A1-domain

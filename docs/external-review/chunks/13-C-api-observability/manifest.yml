@@ -1,0 +1,12 @@
+chunk_id: 13-C-api-observability
+status: prompt_received
+prompt_sha: null  # set by implementer via `git hash-object 00-prompt.md` after this commit
+summary_sha: null
+review_sha: null
+pr: null
+ci_url: null
+deviations_open: []
+review_conditions: []
+follow_ups: []
+next_chunk: null   # final chunk in Phase 13; after merge, Phase 13 is closed; next phase is 10 (Operational Readiness Gate)
+depends_on: [13-B-infrastructure]   # cannot start until B merges to main
