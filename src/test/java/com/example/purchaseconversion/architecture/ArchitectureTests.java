@@ -21,14 +21,18 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
  *   <li>{@code domain} is framework-free (no Spring / JPA imports).</li>
  *   <li>{@code domain} only depends on itself, the JDK, and the explicitly-approved
  *       {@code uuid-creator} library for v7 UUID generation (ADR-0001 D-7).</li>
- *   <li>{@code application} only depends on itself, {@code domain}, and JDK.</li>
+ *   <li>{@code application} only depends on itself, {@code domain}, and JDK
+ *       (now actively enforced — Chunk A2 introduced the {@code application} package).</li>
+ *   <li>{@code application} contains no Spring stereotypes (added in Chunk A2 per the
+ *       A2 prompt; ports + services + exceptions stay pure POJOs until {@code config}
+ *       wires them in Chunk C).</li>
  *   <li>Money safety: no {@code double} / {@code float} / wrappers as fields or method return types
  *       in {@code domain} or {@code application} (NFR-030; ADR-0001 D-2).</li>
  *   <li>Controllers (when they land in M4) reside in {@code api.controller}.</li>
  * </ul>
  *
- * <p>Rules whose target packages don't exist yet (controllers, application) are vacuously
- * satisfied in M1 and activate as those packages land in later milestones.
+ * <p>Rules whose target packages don't exist yet (controllers) are vacuously
+ * satisfied and activate as those packages land in later chunks.
  */
 class ArchitectureTests {
 
@@ -70,12 +74,32 @@ class ArchitectureTests {
     @Test
     @DisplayName("application only depends on itself, domain, and JDK")
     void applicationOnlyDependsOnDomainAndJdk() {
-        // application package does not yet exist in M1; the rule is vacuously satisfied
-        // because there are zero classes matching the precondition. Activates at M2.
+        // Activated in Chunk A2 — the application package now exists. Any application
+        // class depending on Spring, JPA, infrastructure adapters, or any non-domain
+        // non-JDK package will fail this rule.
         ArchRule rule = classes()
                 .that().resideInAPackage("..application..")
                 .should().onlyDependOnClassesThat()
                 .resideInAnyPackage("..application..", "..domain..", "java..");
+        rule.check(classes);
+    }
+
+    @Test
+    @DisplayName("no Spring stereotypes in application (Chunk A2; ports/services stay POJOs)")
+    void noSpringStereotypesInApplication() {
+        // The application layer must remain framework-free until config (Chunk C) wires
+        // it via constructor injection in a @Configuration class outside this package.
+        ArchRule rule = noClasses()
+                .that().resideInAPackage("..application..")
+                .should().beAnnotatedWith("org.springframework.stereotype.Component")
+                .orShould().beAnnotatedWith("org.springframework.stereotype.Service")
+                .orShould().beAnnotatedWith("org.springframework.stereotype.Repository")
+                .orShould().beAnnotatedWith("org.springframework.stereotype.Controller")
+                .orShould().beAnnotatedWith("org.springframework.web.bind.annotation.RestController")
+                .orShould().beAnnotatedWith("org.springframework.web.bind.annotation.RestControllerAdvice")
+                .orShould().beAnnotatedWith("org.springframework.web.bind.annotation.ControllerAdvice")
+                .orShould().beAnnotatedWith("org.springframework.context.annotation.Configuration")
+                .orShould().beAnnotatedWith("org.springframework.beans.factory.annotation.Autowired");
         rule.check(classes);
     }
 
