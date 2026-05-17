@@ -1,0 +1,14 @@
+chunk_id: 13-B1-persistence-cache
+status: prompt_received
+prompt_sha: 87bc26e8bb31f6f4ecc95ff6b7277d04bb86c166
+summary_sha: null
+review_sha: null
+pr: null
+ci_url: null
+deviations_open: []
+review_conditions: [pom-coverage-mutation-extension-for-application, hot-cache-upsert-invalidation-contract]  # absorbed from A2; close at B1's 30-review
+follow_ups: []
+supersedes_part_of: 13-B-infrastructure   # B1 + B2 jointly supersede the original B chunk
+next_chunk: 13-B2-treasury-singleflight
+depends_on: [13-A2-application]
+depends_on_satisfied: true  # A2 merged to main 2026-05-17 (PR #5)

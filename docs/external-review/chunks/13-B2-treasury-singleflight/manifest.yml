@@ -1,0 +1,14 @@
+chunk_id: 13-B2-treasury-singleflight
+status: prompt_received
+prompt_sha: 250e7ed43ad1e55ea3c73597c0afc499941530a3
+summary_sha: null
+review_sha: null
+pr: null
+ci_url: null
+deviations_open: []
+review_conditions: []
+follow_ups: []
+supersedes_part_of: 13-B-infrastructure   # B1 + B2 jointly supersede the original B chunk
+next_chunk: 13-C-api-observability
+depends_on: [13-B1-persistence-cache]
+depends_on_satisfied: false  # B1 must merge to main before B2 starts
