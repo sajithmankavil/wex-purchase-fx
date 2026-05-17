@@ -1,12 +1,20 @@
 chunk_id: 13-A1-domain
-status: under_review   # code-correctness ACCEPTED 2026-05-17; flips to "accepted" after rebase CI is green
+status: accepted   # merged to main 2026-05-17 as commit 04f19aa (rebase strategy; plant+revert preserved)
 prompt_sha: 07434b2edbaaaf41eb75acfc7f190dd6d6022f37
 summary_sha: 3f51a053a8529c83b01a8e89a236752c05584be3
 review_sha: cc33b445add52e1428fb5b00ad42674d5c4ccfd4
 pr: 2
-ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/25999465787   # RED (pre-rebase, pre-fix-merge)
-ci_url_post_rebase: null   # set when rebased CI run is green; flips status to accepted
-deviations_open: [ops-check-strict-flip]   # resolves to [] after PR #4 merges to main + this branch rebases
-review_conditions: [rebase-on-main-after-PR-4-merges, green-ci-on-rebased-branch]
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/25999465787   # original RED pre-rebase, pre-fix-merge
+ci_url_post_rebase: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26002638944   # GREEN
+merged_to_main: 04f19aa
+merge_strategy: rebase   # preserved plant (3e03380) + revert (04f19aa) SHAs as forward commits on main
+deviations_open: []
+review_conditions: []
 follow_ups: []
 next_chunk: 13-A2-application
+implementer_note: |
+  Manifest flipped to "accepted" by implementer under forward-motion bias —
+  the reviewer's 30-review.md §1-§4 issued the substantive verdict; the
+  flip is the mechanical state transition triggered by the two satisfied
+  conditions (rebase + green CI). Reviewer may issue 30-review-v2.md to
+  redirect if disagreed.

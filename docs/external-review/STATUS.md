@@ -2,23 +2,26 @@
 
 > Auto-target: `make status` once Java/Make wired (post-M7). Hand-maintained until then.
 
-| Chunk ID | Status | PR | Open deviations | Next |
+| Chunk ID | Status | PR | Merged | Next |
 |---|---|---|---|---|
-| 13-PRE-dossier-bootstrap | accepted (no pre-merge conditions; see 30-review-v2.md) | #3 | — | implementer may merge per the consolidated sequence |
-| 13-PRE-readiness-check-fix | accepted | #4 (CI green; reviewer sandbox pytest 7/7 pass) | — | implementer merges PR #4 first; A1 rebases on main |
-| 13-A1-domain | under_review | #2 | ops-check-strict-flip (resolved by #4 merge; pending rebase) | rebase on main after #4 merges; reviewer 30-review.md |
+| 13-PRE-dossier-bootstrap | accepted | #3 (squash) | `b762bec` | — closed |
+| 13-PRE-readiness-check-fix | accepted | #4 (squash) | `fdfe8e9` | — closed |
+| 13-A1-domain | accepted | #2 (rebase) | `04f19aa` (plant `3e03380` + revert `04f19aa` preserved) | — closed |
+| 13-A2-application | implementing | — | — | implementer authoring on `feature/chunk-a2-application` |
+| 13-B-infrastructure | prompt_received | — | — | starts after A2 merges |
+| 13-C-api-observability | prompt_received | — | — | starts after B merges |
 
 Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded`.
 
 ## Phase 13 chunk plan (live)
 
 ```
-13-PRE-dossier-bootstrap        ← accepted (cond: line-ending normalize); PR #3
-13-PRE-readiness-check-fix      ← accepted; PR #4 — unblocks A1 CI
-13-A1-domain                    ← code-correctness accepted; CI verification pending rebase; PR #2
-13-A2-application               ← prompt_received (00-prompt + manifest pre-staged 2026-05-17)
-13-B-infrastructure             ← prompt_received (00-prompt + manifest pre-staged 2026-05-17)
-13-C-api-observability          ← prompt_received (00-prompt + manifest pre-staged 2026-05-17) — final chunk
+13-PRE-dossier-bootstrap        ← accepted, merged b762bec
+13-PRE-readiness-check-fix      ← accepted, merged fdfe8e9
+13-A1-domain                    ← accepted, merged 04f19aa (plant+revert preserved)
+13-A2-application               ← implementing (in-flight on feature/chunk-a2-application)
+13-B-infrastructure             ← prompt_received (pre-staged)
+13-C-api-observability          ← prompt_received (pre-staged) — final chunk
 ```
 
 ## Autonomous-handoff protocol (added 2026-05-17)
@@ -41,7 +44,8 @@ True file-watch ("watch for each other and go") requires a GitHub Action on `doc
 
 ## Recent implementer activity
 
-- 2026-05-17 — Pushed back on the §5 line-ending finding in `chunks/13-PRE-dossier-bootstrap/30-review.md`. Actual PR #3 diff on origin is `+790 / -0` across 13 new files (no churn). Evidence in `chunks/13-PRE-dossier-bootstrap/35-clarification.md`. Awaiting reviewer response before running the merge sequence.
+- 2026-05-17 — Ran full merge sequence per `30-review-v2.md`: PR #4 → PR #3 → rebase A1 → PR #2. All four merged. A1's `manifest.status` flipped to `accepted` under forward-motion bias (mechanical transition; substantive review was `30-review.md` §1-§4). Started A2 on `feature/chunk-a2-application`; flipped A2 manifest to `implementing`.
+- 2026-05-17 — Pushed back on the §5 line-ending finding in `chunks/13-PRE-dossier-bootstrap/30-review.md`. Actual PR #3 diff on origin is `+790 / -0` across 13 new files (no churn). Evidence in `chunks/13-PRE-dossier-bootstrap/35-clarification.md`. Reviewer withdrew the finding in `30-review-v2.md`.
 
 ## Pending follow-ups (non-blocking)
 
