@@ -1,0 +1,106 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git branch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git switch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(make:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(pytest:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(mvn test:*)",
+      "Bash(gradle test:*)",
+      "Bash(docker build:*)",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(terraform apply:*)",
+      "Bash(terraform destroy:*)",
+      "Bash(aws secretsmanager get-secret-value:*)",
+      "Bash(gcloud secrets versions access:*)",
+      "Bash(az keyvault secret show:*)",
+      "Bash(printenv:*)",
+      "Bash(env:*)",
+      "Bash(touch .human-approvals/*:*)",
+      "Bash(cp * .human-approvals/*:*)",
+      "Bash(mv * .human-approvals/*:*)",
+      "Bash(cat .human-approvals/*:*)",
+      "Bash(echo * > .human-approvals/*:*)",
+      "Bash(printf * > .human-approvals/*:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pre_bash_guard.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/protected_file_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/planning_phase_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pci_security_phase_guard.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/post_edit_note.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/stop_summary_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/operational_readiness_guard.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/pci_stop_guard.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm production release checklist
+        run: |
+          test -f docs/release/production-readiness-review.md
+          test -f docs/operations/rollback-plan.md
+          test -f docs/operations/operational-readiness-gate.md
+          test -f docs/operations/monitoring-alerting.md
+          test -f docs/operations/capacity-scalability-plan.md
+          echo "Production checklist files exist."
+
+      - name: Enforce operational readiness
+        run: make ops-check
+
+      - name: Build artifact
+        run: |
+          echo "Customize production build command."
+
+      - name: Deploy canary or blue-green
+        run: |
+          echo "Customize production deployment."
+          echo "Production deployment must be protected by GitHub Environment approval."
+
+      - name: Production smoke test
+        run: |
+          echo "Customize production smoke tests."
+
+      - name: Monitor rollout against SLOs
+        run: |
+          echo "Customize rollout monitoring against SLOs, burn-rate alerts, canary health, saturation, and business KPIs."

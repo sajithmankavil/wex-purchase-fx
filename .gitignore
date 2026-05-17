@@ -1,0 +1,58 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+service-account*.json
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs/builds
+logs/
+*.log
+dist/
+build/
+coverage/
+tmp/
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Node
+node_modules/
+.npm/
+.next/
+out/
+
+# Java
+target/
+.gradle/
+build/
+*.iml
+*.class
+*.jar
+*.war
+
+# H2 file-mode data (when implementation lands)
+*.mv.db
+*.trace.db
+*.lock.db
+wex-data/
+
+# Windows
+Thumbs.db
+desktop.ini

@@ -1,0 +1,10 @@
+security_profile:
+  mode: pci_dss_tier1
+  pci_dss_version: "4.0.1"
+  validation_assumption: "Tier 1 merchant or service provider posture; validate exact reporting obligations with acquirer/payment brands/QSA."
+  default_policy: "No PAN storage unless explicitly approved, justified, encrypted, logged, and mapped to CDE controls."
+  cde_policy: "Any component that stores, processes, transmits, can impact, or can secure cardholder data is in or connected-to the CDE until proven otherwise."
+  prod_release_policy: "No production release without PCI production readiness gate, security approval, and explicit human approval."
+  sensitive_auth_data_policy: "Never store sensitive authentication data after authorization."
+  log_policy: "Never log PAN, SAD, CVV/CVC, PIN data, track data, auth secrets, session tokens, or full payment payloads."
+  data_minimization_policy: "Prefer tokenization, network tokens, hosted fields, or provider-side vaulting to reduce scope."

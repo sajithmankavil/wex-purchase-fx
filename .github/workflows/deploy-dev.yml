@@ -1,0 +1,27 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build artifact
+        run: |
+          echo "Customize build command for your stack."
+
+      - name: Deploy to dev
+        run: |
+          echo "Customize dev deployment."
+          echo "Do not put production secrets in this workflow."
+
+      - name: Smoke test
+        run: |
+          echo "Customize smoke tests."

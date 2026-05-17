@@ -1,0 +1,9 @@
+# Require review for sensitive areas.
+* @REPLACE_WITH_OWNER
+
+.github/workflows/ @REPLACE_WITH_OWNER
+infra/ @REPLACE_WITH_OWNER
+.claude/settings.json @REPLACE_WITH_OWNER
+.claude/hooks/ @REPLACE_WITH_OWNER
+docs/security/ @REPLACE_WITH_OWNER
+docs/operations/ @REPLACE_WITH_OWNER

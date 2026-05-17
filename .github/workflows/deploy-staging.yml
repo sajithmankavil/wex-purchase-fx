@@ -1,0 +1,25 @@
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build artifact
+        run: |
+          echo "Customize build command for your stack."
+
+      - name: Deploy to staging
+        run: |
+          echo "Customize staging deployment."
+
+      - name: Run staging validation
+        run: |
+          echo "Customize e2e, migration, and smoke checks."
