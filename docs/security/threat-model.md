@@ -173,10 +173,10 @@ Threats indexed `TM-S-…` (Spoofing) `TM-T-…` (Tampering) `TM-R-…` (Repudia
 ## 7. Residuals accepted at v1
 
 - No app-layer authn (A-007); offset by the trusted-gateway assumption and OQ-010 BLOCKING-for-prod.
-- No app-layer rate limiter (G4-P1-15); offset by gateway rate-limiting; Phase 7 to decide if defense-in-depth is added.
+- ~~No app-layer rate limiter (G4-P1-15); offset by gateway rate-limiting; Phase 7 to decide if defense-in-depth is added.~~ **Closed Phase-7 D-15:** app-layer Resilience4j RateLimiter added (default disabled; `WEX_RATE_LIMIT_RPM` env enables).
 - `description.length` side-channel (G4-P2-4) — measured residual; not addressed v1.
-- Treasury-orientation contract check is WARN-only at v1 (G4-P1-27); Phase 5 promotes to fail-closed at threshold.
-- HMAC key in plain env at v1; Phase 7 chooses the production retrieval pattern (G4-P1-11).
+- Treasury-orientation contract check is WARN-only at v1 (G4-P1-27); ~~Phase 5 promotes to fail-closed at threshold~~. **Closed Phase 5 / Phase 7:** SEV1 at > 5 % drift / 3-consecutive canary fail; canary cadence 24 h (Phase-6 G6-P1-8).
+- ~~HMAC key in plain env at v1; Phase 7 chooses the production retrieval pattern (G4-P1-11)~~. **Closed Phase-7 D-16:** CSI-mounted secret file (preferred) or Vault Agent sidecar; plain env only in `local`/`test`.
 - **Multi-encoding chain bypass** of the encoded-PAN guard (AB-014) — decoders are single-pass, not recursive; Phase 7 PCI grill re-attacks.
 - **Decoder pipeline CPU cost** (TM-D-008) — ~100 µs per inbound POST; bounded by 50-char description cap.
 - **Alias-table TOCTOU on `WEX_ALIAS_TABLE_PATH` override** (TM-T-009) — mitigated by read-only mount in prod; documented residual on insecure overrides.

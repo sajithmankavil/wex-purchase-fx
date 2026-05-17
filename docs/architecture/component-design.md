@@ -105,7 +105,7 @@ Enforced by ArchUnit (see §6).
 | `ExchangeRateRepositoryAdapter` | Versioned persistence of `ExchangeRate` keyed by `(country_currency_desc, record_date, effective_date)`. | Implements `ExchangeRateRepositoryPort` | Owns the `exchange_rates` table. | Same as above; duplicate-key on identical `(currency, record_date, effective_date, exchange_rate)` is a no-op (idempotent insert). |
 | `TreasuryClientAdapter` | Outbound HTTP to Treasury Fiscal Data API. Bounded timeout, retry+backoff, circuit breaker, bulkhead. Parses JSON. | Implements `TreasuryClientPort` | None | Timeout / 5xx / CB open → maps to upstream-error domain type; schema-invalid / sanity-failed → maps to upstream-bad-response domain type. |
 | `RateOrientationContractCheck` | Sanity-asserts the multiplicative-formula invariant against a small fixture set on every fresh fetch (defence against a future currency landing with inverted convention). | Internal to TreasuryClientAdapter | None | Logs WARN + increments `treasury.contract.orientation_drift.count`; does not fail the request. (Phase 5 promotes to fail-closed.) |
-| `SingleFlightGate` | Per-`(country_currency_desc, treasury_quarter_end)` lock (Phase-4 G4-P0-1) so concurrent cache misses fan in to one upstream call. `treasury_quarter_end = ceil(transactionDate, quarter-end)`. | Internal | Transient | Bounded wait (200 ms default) for losers; loser then re-checks the DB and returns the persisted result or the winner's mapped error. On SIGTERM the gate releases all locks; in-flight losers fail-fast with `503 UPSTREAM_UNAVAILABLE`. |
+| `SingleFlightGate` | Per-`(country_currency_desc, treasury_quarter_end)` lock (Phase-4 G4-P0-1) so concurrent cache misses fan in to one upstream call. `treasury_quarter_end = ceil(transactionDate, quarter-end)`. | Internal | Transient | **Bounded wait 10 s** (Phase-6 G6-P0-2; raised from 200 ms to match Treasury client's worst-case retry budget). Loser polls DB every 100 ms during the wait; watches an `AtomicReference<WinnerOutcome>` on the gate's per-key state. Returns when (a) DB has the persisted result or (b) winner-outcome-ref shows failure (loser mirrors winner's exception type to satisfy AC-027d). On 10 s timeout: `UpstreamUnavailableException("loser_timeout")`. On SIGTERM the gate releases all locks; in-flight losers fail-fast with `503 UPSTREAM_UNAVAILABLE`. |
 | `CurrencyAliasTableAdapter` | Loads `currency-aliases.json` at startup; resolves ISO-4217 or case-insensitive Treasury descriptor → canonical `country_currency_desc`. | Implements `CurrencyAliasPort` | Read-only resource | Refuse-to-start on missing/parse-error file (readiness DOWN). |
 | `ExchangeRateHotCache` | Caffeine cache for hot-path rate lookups, keyed by `(country_currency_desc, record_date)` (Phase-4 G4-P0-2). TTL 24 h (default) / 7 d (prod override). Cache invalidated on `upsertVersioned()` for the affected key (Phase-4 cache-invalidation note in ADR-0001 D-10). | Internal | Transient | Eviction is silent; correctness fallback is the DB. |
 | `DescriptionHasher` | HMAC-SHA-256 with versioned key prefix. | Internal | None | Refuse-to-start in prod/staging if `WEX_LOG_HASH_KEY` is unset (NFR-017). |
@@ -237,23 +237,44 @@ Graceful shutdown (Phase-4 refinement, G4-P1-20)
 
 Treasury degradation alone does **not** flip readiness DOWN: FR-001 and FR-002 remain serviceable, and FR-003 continues to serve from local cache (AC-022).
 
-### 3.5 ContentGuard (Phase-4 refinement, G4-P0-5)
+### 3.5 ContentGuard (Phase-4 refinement G4-P0-5; Phase-8 refinement G8-P0-1 + G8-P0-3)
 
-Phase-3 D-13 framed the guards as defense-in-depth. The Phase-4 grill upgraded them to **detection-and-alert** with an encoded-input pre-pass:
+Phase-3 D-13 framed the guards as defense-in-depth. Phase-4 upgraded them to **detection-and-alert** with an encoded-input pre-pass. Phase-8 grill added **Unicode NFKC normalisation** (G8-P0-3) and **rate-limiter ordering** (G8-P0-1).
 
 ```
 ContentGuard.check(description):
-  candidates = [ description ]
+  // Phase-8 G8-P0-3: normalise to NFKC first (catches fullwidth digits, homoglyphs)
+  normalised = Normalizer.normalize(description, Form.NFKC)
+
+  // Phase-4 G4-P0-5: build candidate set including decoded variants
+  candidates = [ normalised ]
   for decoder in [ base64-standard, base64-urlsafe, hex, urlEncoded ]:
-      decoded = decoder.tryDecode(description)
+      decoded = decoder.tryDecode(normalised)
       if decoded is not None: candidates.append(decoded)
+
+  // Apply guards to each candidate
   for candidate in candidates:
-      if matchesLuhn(candidate):       reject "luhn" or "luhn-encoded"
-      if matchesTrack1(candidate):     reject "track1"
-      if matchesTrack2(candidate):     reject "track2"
+      if matchesLuhn(candidate):      reject "luhn" (or "luhn-encoded" if candidate != normalised)
+      if matchesTrack1(candidate):    reject "track1"
+      if matchesTrack2(candidate):    reject "track2"
 ```
 
-A successful decoder produces a candidate string; the guards run against each candidate. A hit at any stage rejects the payload as `400 PAN_PATTERN_DETECTED`. The audit event `purchase_validation_failed{reason=luhn|luhn-encoded|track1|track2}` is emitted; payload is not logged. AC-010d covers the encoded-input cases.
+The *stored* `description` remains the original (un-normalised) input; NFKC is applied only for the guard check. AC-010d covers encoded variants; AC-010e (Phase 8) covers Unicode-confusable variants. Audit event `purchase_validation_failed{reason=…}` is emitted; rejected payload is **never logged**.
+
+**Order of operations (Phase-8 G8-P0-1).** Rate-limiting must execute **before** the decoder pipeline to avoid CPU-cost DoS:
+
+```
+HTTP Filter chain
+  └─ WexRateLimiterFilter (servlet Filter, @Order(HIGHEST_PRECEDENCE + 100))
+       Returns 429 here if limit exceeded → ContentGuard never runs
+  └─ Spring DispatcherServlet
+       └─ Bean Validation (@Valid: bounded length, format)
+           └─ ContentGuard advice (NFKC + decoder + Luhn/track guards)
+               └─ Controller method
+                   └─ Application service
+```
+
+The earlier Phase-7 `@RateLimiter` controller-method annotation is **removed**; rate-limiting moves entirely to the servlet Filter. AC-T-6 (Phase 8) asserts that `contentguard.invocations.count` increments only for requests that pass the rate-limit.
 
 ---
 

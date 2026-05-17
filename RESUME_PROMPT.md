@@ -28,100 +28,122 @@
 | D-6 | **Stack (proposed, to be ratified in ADR-0001):** Java 21 · Spring Boot 3.x · Maven · embedded H2 (file mode) · Flyway · Resilience4j · springdoc-openapi · Micrometer + OpenTelemetry · JUnit 5 + AssertJ + Mockito + WireMock + Pitest + ArchUnit + jqwik · SLF4J/Logback (JSON). PostgreSQL-compatible production profile. | Satisfies "no separate DB/web server/servlet container"; modern enterprise default. |
 | D-7 | **Project layout:** bundle scaffolded into `WEX Case Study/wex-purchase-fx/` as the project root. | Persists on the user's drive across sessions. |
 
-## What's complete
+## What's complete (updated 2026-05-17, end of Phase 8)
 
-- ✅ Phase 1 — Requirements Ingestion (reconciled with `AGENT_PROJECT_INSTRUCTIONS.md` on 2026-05-14).
-- ✅ Phase 1 reconciliation pass (endpoint/field/error-code renames, RFC 9457 problem details, PAN-pattern content guard, `record_date` canonical, dual-mode currency input).
+| Phase | Status | Headline |
+|---|---|---|
+| 1 — Requirements Ingestion | ✅ | FR/NFR/AC/A/OQ/R registers populated; reconciled with overlay 2026-05-14 |
+| 2 — Requirements Grill | ✅ | 5 P0 + 11 P1 + 10 P2 findings; 12 new ACs; bundle/overlay edits applied at Phase-4 hardening |
+| 3 — Architecture & Design Session | ✅ | ADR-0001 D-1..D-14 + 5 architecture docs; Treasury rate orientation empirically verified |
+| 4 — Design Grill | ✅ | 5 P0 (single-flight, cache key, scale-6, UUID-v7, encoded-PAN) + 20 P1 + 10 P2 |
+| 4-hardening pass | ✅ | Bundle/overlay drift closed; P1 deferrals acceptance doc; Day-2 ratifications F1–F5; 5 new threat-model entries; NFR-013b HMAC ≥ 256 bits |
+| 5 — Operational Design Session | ✅ | 10 deliverables; SLO-C bounded by Treasury × cache-hit; CB calibration; warm-up; rate-orientation fail-closed threshold |
+| 6 — Reliability & Scalability Grill | ✅ | 4 P0 (CB TIME_BASED, loser-wait 10 s, p99 1500 → 3000 ms, DB pool 10 → 20) + 12 P1 |
+| 7 — PCI Security Design Session | ✅ | 13 security docs + meta; D-15..D-20 (rate-limiter, HMAC sourcing, audit destination, vuln SLA, encoded-PAN, PMD policy) |
+| 8 — PCI Adversarial Security Grill | ✅ | 4 P0 (decoder ordering, audit re-categorisation, Unicode NFKC, Treasury TPSP) + 12 P1; AC-010e + AC-T-6 + R-038..R-041 |
+| 9 — Implementation Readiness Gate | ⏸ pending "proceed" | Inherits OQ-010 BLOCKING-for-prod; final verdict |
+| 10 — Operational Readiness Gate | ⏸ | After Phase 13 |
+| 11 — PCI Security Readiness Gate | ⏸ | After Phase 13; QSA evidence collection |
+| 12 — Human Approval (`.human-approvals/*.txt`) | ⏸ | Human-only; outside Claude Code |
+| 13 — Implementation | ⏸ | Approval-gated |
 
-**Phase 1 artifacts (authoritative):**
+**Repo:** [github.com/sajithmankavil/wex-purchase-fx](https://github.com/sajithmankavil/wex-purchase-fx) (private; initial commit Phase 4)
+
+**Core artefacts (authoritative):**
 - `docs/requirements/source-requirements.md` (verbatim source — never overwritten)
-- `docs/requirements/functional-requirements.md` (FR-001..FR-006)
-- `docs/requirements/non-functional-requirements.md` (NFR-001..NFR-035)
-- `docs/requirements/acceptance-criteria.md` (AC-001..AC-036 + AC-T-1..AC-T-4)
-- `docs/requirements/assumptions-and-open-questions.md` (A-001..A-016, OQ-001..OQ-017)
-- `docs/requirements/open-questions.md` (focused OQ register)
-- `docs/requirements/risk-register.md` (R-001..R-020 + W-001..W-005)
-- `docs/requirements/requirements-analysis.md` (consolidated executive analysis)
-- `docs/requirements/traceability-matrix.md` (source ↔ FR ↔ AC ↔ tests ↔ NFRs ↔ risks)
+- `docs/requirements/functional-requirements.md` (FR-001..FR-006 + decision tables)
+- `docs/requirements/non-functional-requirements.md` (NFR-001..NFR-035 + NFR-013b/014b/016b/018b)
+- `docs/requirements/acceptance-criteria.md` (AC-001..AC-036 + AC-T-1..AC-T-6 + 14 Phase-2/4/8 additions)
+- `docs/requirements/assumptions-and-open-questions.md` (A-001..A-022; OQ-001..OQ-023; closures Phase-2/3/4/6/7/8)
+- `docs/requirements/risk-register.md` (R-001..R-041)
+- `docs/requirements/traceability-matrix.md` (bidirectional + per-gate finding maps)
+- `docs/planning/{requirements-grill,design-session,design-grill,operational-design-session,reliability-scalability-grill,pci-security-design-session}.md`
+- `docs/planning/{day-1-ratifications,phase-3-prototype-log,p1-deferrals-acceptance}.md`
+- `docs/architecture/{adr-0001-core-architecture,system-context,component-design,data-model,api-contracts,deployment-architecture}.md`
+- `docs/operations/` (10 deliverables: service-catalog, slo-sli, error-budget-policy, capacity-scalability-plan, failure-modes-and-resilience, monitoring-alerting, observability, runbook, oncall-escalation, operational-readiness-gate, rollback-plan, incident-response)
+- `docs/security/` (14 Phase-7 deliverables + threat-model.md + pci-security-grill.md from Phase 8)
 
 ## What's next
 
-Phase 2 — **Requirements Grill** (adversarial). The prompt below kicks this off.
+**Phase 9 — Implementation Readiness Gate.** Single deliverable: `docs/planning/implementation-readiness-gate.md`. Verdict will be one of:
 
-After Phase 2 finishes, the sequence is: Phase 3 (Architecture & Design Session) → Phase 4 (Design Grill) → Phase 5 (Operational Design Session) → Phase 6 (Reliability & Scalability Grill) → Phase 7 (PCI Security Design Session) → Phase 8 (PCI Adversarial Security Grill) → Phase 9 (Implementation Readiness Gate) → Phase 10 (Operational Readiness Gate) → Phase 11 (PCI Security Readiness Gate) → Phase 12 (Human Approval — you manually create `.human-approvals/implementation-approved.txt` and `pci-security-approved.txt`) → Phase 13 (Implementation in small reviewable branches).
+```
+Status: BLOCKED
+Status: CONDITIONALLY_READY
+Status: READY_FOR_HUMAN_APPROVAL
+```
 
-Pause after each phase; do not batch.
+Phase 9 inspects:
+- Every Phase-2/4/6/8 P0 closed or pinned ✅ (already done)
+- Every P1 either closed or in `docs/planning/p1-deferrals-acceptance.md` with named owner + target gate ✅
+- OQ-010 (identity origin) — **still BLOCKING-for-prod**; Phase 9 records this for Phase 12 hand-off
+- No source-rule conflicts; no spec-vs-design contradictions
+- Test-plan completeness; SDLC-gate completeness; evidence-register completeness
+
+Phase 9 cannot mark "READY_FOR_HUMAN_APPROVAL" if any P0 is unresolved or any P1 lacks a named owner.
+
+After Phase 9: Phase 10 (operational readiness) → Phase 11 (PCI security readiness) → Phase 12 (human approval markers, human-only) → Phase 13 (implementation in small reviewable branches).
+
+Pause after each phase; do not batch (D-2).
 
 ---
 
-## Prompt to give Claude Code (paste this into VS Code)
+## Prompt to give Claude Code (paste this into VS Code) — Phase 9 launch
 
 ```
-You are continuing an enterprise-grade software delivery initiative for the WEX Purchase Currency Conversion Service. Read these files first, in this order, before doing anything else:
+You are continuing an enterprise-grade software delivery initiative for the WEX Purchase Currency Conversion Service. Phases 1-8 are complete; the next gate is Phase 9 (Implementation Readiness Gate). Read these files first, in this order, before doing anything else:
 
 1. CLAUDE.md
 2. AGENT_PROJECT_INSTRUCTIONS.md
-3. RESUME_PROMPT.md
-4. docs/requirements/source-requirements.md
-5. docs/requirements/requirements-analysis.md
-6. docs/requirements/functional-requirements.md
-7. docs/requirements/non-functional-requirements.md
-8. docs/requirements/acceptance-criteria.md
-9. docs/requirements/assumptions-and-open-questions.md
-10. docs/requirements/open-questions.md
-11. docs/requirements/risk-register.md
-12. docs/requirements/traceability-matrix.md
-13. security-profile.yml
-14. .claude/settings.json
-15. .human-approvals/README.md
-16. prompts/00a-requirements-grill.md
+3. RESUME_PROMPT.md (this file — confirms Phases 1-8 status)
+4. docs/planning/p1-deferrals-acceptance.md (definitive P1 deferral state)
+5. docs/planning/requirements-grill.md (Phase 2)
+6. docs/planning/design-session.md + docs/architecture/adr-0001-core-architecture.md (Phase 3)
+7. docs/planning/design-grill.md (Phase 4)
+8. docs/planning/operational-design-session.md + docs/operations/operational-readiness-gate.md (Phase 5)
+9. docs/planning/reliability-scalability-grill.md (Phase 6)
+10. docs/planning/pci-security-design-session.md + docs/security/pci-dss-control-matrix.md (Phase 7)
+11. docs/security/pci-security-grill.md (Phase 8)
+12. docs/requirements/{traceability-matrix,acceptance-criteria,risk-register}.md
+13. security-profile.yml + .human-approvals/README.md
+14. prompts/02a-implementation-readiness-gate.md
 
-You are not an uncontrolled coder. You must follow the mandatory phase sequence in CLAUDE.md and the project overlay in AGENT_PROJECT_INSTRUCTIONS.md. Both apply. Where they conflict, AGENT_PROJECT_INSTRUCTIONS.md takes precedence on naming, API shape, rounding, and error-code conventions; CLAUDE.md takes precedence on gate sequence, hook-enforced phase guards, human-approval markers, PCI posture, and CI/CD release rules. The human-owner decisions D-1 through D-7 in RESUME_PROMPT.md are locked unless I explicitly override them.
+You are not an uncontrolled coder. You must follow the mandatory phase sequence in CLAUDE.md and the project overlay in AGENT_PROJECT_INSTRUCTIONS.md. Both apply (overlay precedence on naming/API/rounding/error-codes; bundle precedence on gates/hooks/approval-markers/PCI/release). Human-owner decisions D-1..D-7 + Day-2 F1..F5 are locked unless I explicitly override them.
 
-Phase 1 (Requirements Ingestion) is complete. Do not regenerate Phase 1 artifacts. Treat the docs/requirements/* files as authoritative.
-
-Your task right now is Phase 2 — Requirements Grill (adversarial). Do not code. Do not create application source files. Do not modify pom.xml, build.gradle, src/**, Dockerfile, infra/**, or .github/workflows/**.
+Your task right now is Phase 9 — Implementation Readiness Gate. Do not code. Do not create application source files. Do not modify pom.xml, build.gradle, src/**, Dockerfile, infra/**, or .github/workflows/**.
 
 Act simultaneously as:
-- A skeptical enterprise architecture review board
-- A production SRE who has been paged at 2 a.m. for currency-conversion regressions
-- A Java principal engineer who has seen money-arithmetic bugs ship before
-- A security reviewer with a PCI background
-- A QA lead who insists on testable, unambiguous acceptance criteria
-- A business stakeholder who wants the right answer faster, not a longer document
+- A release-readiness auditor
+- A PCI compliance liaison
+- A QA lead
+- An SRE with production responsibility
+- The service owner accountable for the cutover decision
 
-Aggressively challenge:
-- Contradictions across the Phase 1 docs
-- Vague or untestable acceptance criteria
-- Hidden operational risks
-- Reliability/resilience gaps
-- Scalability assumptions
-- Treasury API dependency risks (especially: which rate field, tie-breaking on duplicates, rate-direction orientation, schema drift)
-- Rounding/precision risks (HALF_UP is locked but record the counter-argument and any places HALF_UP behaves surprisingly)
-- Validation gaps (especially the PAN-pattern content guard's false-positive profile)
-- Error-handling gaps (especially the boundary between CONVERSION_RATE_NOT_AVAILABLE and UPSTREAM_UNAVAILABLE)
-- Test-coverage gaps
-- Local-runnable-assignment risks (single-jar, H2 file mode)
-- Production-readiness gaps
-- Security / PCI-scope risks (the out-of-CDE claim must be adversarially attacked)
-- The NFR latency/SLO anchors — they are PROPOSED figures and must be either ratified or rejected
-- Each of the 17 open questions (OQ-001..OQ-017) — for each one, decide BLOCKING / IMPORTANT / NICE for the next phase
+Produce the artifact:
+1. docs/planning/implementation-readiness-gate.md — verdict of BLOCKED / CONDITIONALLY_READY / READY_FOR_HUMAN_APPROVAL.
 
-Produce these artifacts:
-1. docs/planning/requirements-grill.md  — P0 / P1 / P2 findings; per-finding: title, observation, evidence (cite FR/NFR/AC/A/OQ/R IDs), risk, recommended fix, owner, target gate. End with a proceed/block recommendation and the exit-criteria checklist that must be satisfied before Phase 3 begins.
-2. Update docs/requirements/* in place if the grill finds ambiguities you can pin down to a concrete clarification. Preserve IDs; never rewrite source-requirements.md.
-3. Update docs/requirements/traceability-matrix.md so every grill finding traces to one or more existing IDs.
+The verdict must inspect:
+- Every Phase-2/4/6/8 P0 closed or pinned (cross-reference each grill)
+- Every P1 either closed or in docs/planning/p1-deferrals-acceptance.md with named owner + target gate
+- Source-requirements.md vs design contradictions (none expected)
+- Test-plan completeness (cross-reference AC-T-1..AC-T-6 + AC-010d/e + AC-027e + AC-026b)
+- SDLC-gate completeness per docs/security/secure-sdlc-pci.md
+- Evidence-register completeness per docs/security/evidence-register.md
+- OQ-010 (identity origin) — must be marked BLOCKING-for-prod with Phase-12 hand-off path
+- Phase-5/6 operational readiness anchors (verifiable, not aspirational)
+- Phase-7/8 PCI evidence chain (collectible, not assumed)
 
-When you are done with Phase 2, stop. Do not move to Phase 3 without my explicit "proceed to Phase 3" approval.
+CANNOT mark READY_FOR_HUMAN_APPROVAL if any P0 is unresolved or any P1 lacks a named owner. May mark CONDITIONALLY_READY if all P1s are tracked but some lack final platform-binding (recommend the platform pick happens at Phase 12).
+
+When done with Phase 9, stop. Do not move to Phase 10 without my explicit "proceed to Phase 10" approval. The Phase 10 and Phase 11 readiness gates are separate documents that re-inspect operational + PCI readiness specifically.
 
 Your final response must follow the CLAUDE.md §9 completion summary format and must include:
-- A short Phase 2 verdict: PROCEED / BLOCK / CONDITIONALLY PROCEED
-- The top three P0 findings
-- Any new OQs or risks discovered
-- Recommended improvements to AGENT_PROJECT_INSTRUCTIONS.md or CLAUDE.md, if any
-- The exit-criteria checklist for Phase 2
+- A short Phase 9 verdict
+- The remaining open items per gate (Phase 10 / 11 / 12 / 13)
+- Recommendation on whether to proceed to Phase 10 or to first close additional gates
+- The exit-criteria checklist for Phase 9
 
-Begin by reading the files listed above, then announce that Phase 2 is starting and produce the grill.
+Begin by reading the files listed above, then announce that Phase 9 is starting and produce the readiness gate document.
 ```
 
 ---

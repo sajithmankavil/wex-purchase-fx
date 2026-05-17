@@ -176,8 +176,9 @@ Properties:
 
 ### 4.3 Graceful shutdown
 
-- Spring Boot graceful shutdown enabled (`server.shutdown=graceful`, `spring.lifecycle.timeout-per-shutdown-phase=30s`).
-- On SIGTERM: readiness flips DOWN immediately → LB stops routing new requests; in-flight HTTP drains within 30 s; Treasury bulkhead closes first to halt new outbound calls.
+- Spring Boot graceful shutdown enabled (`server.shutdown=graceful`, `spring.lifecycle.timeout-per-shutdown-phase=60s` per Phase-6 G6-P1-4; raised from 30 s).
+- On SIGTERM: readiness flips DOWN immediately → LB stops routing new requests; in-flight HTTP drains within 60 s; Treasury bulkhead closes first to halt new outbound calls; single-flight gate releases all locks (Phase-4 G4-P1-20).
+- For sustained peak load, canary deploy is preferred over rolling — the 60 s drain may still abandon some in-flight work if Tomcat is saturated.
 - Idempotency-Key (when implemented; OQ-009 BLOCKING-for-prod) makes retries safe.
 
 ---

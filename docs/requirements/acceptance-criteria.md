@@ -5,6 +5,8 @@
 > **Phase-2 (Requirements Grill) additions, 2026-05-14:** AC-001b, AC-010c, AC-018b, AC-019b, AC-020b, AC-021b, AC-022b, AC-024b, AC-026b, AC-027d, AC-032b, AC-T-5. See `docs/planning/requirements-grill.md` §7.
 >
 > **Phase-4 (Design Grill) additions, 2026-05-17:** AC-010d (encoded-PAN guard), AC-021c (alias-table-drift reverse case), AC-027e (single-flight quarter-window deduplication); AC-026b refined to persistence-centric wording; AC-T-3 fixture set widened. See `docs/planning/design-grill.md` §5.
+>
+> **Phase-8 (PCI Security Grill) additions, 2026-05-17:** AC-010e (Unicode-confusable PAN; NFKC pre-pass) and AC-T-6 (rate-limit before ContentGuard). See `docs/security/pci-security-grill.md`.
 
 ---
 
@@ -50,6 +52,9 @@
 
 ### AC-010d — Encoded-PAN guard (G4-P0-5; Phase 4)
 - A `description` whose base64- (standard or URL-safe), hex-, or URL-encoded form decodes to a Luhn-valid 13–19-digit sequence is rejected as `400`, `errorCode=PAN_PATTERN_DETECTED`, `details.reason="luhn-encoded"`. The decoder pipeline runs as a pre-pass to the Luhn check (component-design.md §3.5). Audit event `purchase_validation_failed{reason=luhn-encoded}` emitted; payload not logged.
+
+### AC-010e — Unicode-confusable PAN guard (G8-P0-3; Phase 8)
+- A `description` containing a Luhn-valid 13–19-digit sequence written in **Unicode-confusable digits** (e.g., fullwidth digits `U+FF10..U+FF19` separated by ideographic spaces `U+3000`) is rejected as `400`, `errorCode=PAN_PATTERN_DETECTED`, `details.reason="luhn"`. The Unicode NFKC normalisation pre-pass in `ContentGuard.check` (component-design.md §3.5) maps the confusable digits to ASCII before the Luhn regex runs. Example: `４２４２　４２４２　４２４２　４２４２` is rejected with `reason="luhn"`. Stored `description` (if it had been valid) retains the original code points; only the guard check uses NFKC.
 
 ### AC-001b — POST without `Idempotency-Key` is not idempotent (G-P1-8)
 - Two consecutive identical `POST /api/v1/purchases` requests with no `Idempotency-Key` header produce **two** distinct purchases with **two** distinct server-assigned `id`s, each returning `201`. Documented contract; `Idempotency-Key` (when offered, P1 — OQ-009) is the only way to obtain replay-safe semantics.
@@ -207,4 +212,5 @@
 - **AC-T-3** Treasury contract tests cover happy path, empty result, malformed payload, 5xx, slow response, timeout, rate-with-trailing-zero (`148.0` persists and serialises as `148.000000` per Phase-4 G4-P0-3), rate-with-leading-zero (`0.085`), high-precision rate (≥ 6 fractional digits), **zero rate** (rejected as `502 UPSTREAM_BAD_RESPONSE`), **negative rate** (rejected), **null rate** (schema-rejected), and rate-near-sanity-ceiling (≤ 10³⁰; Phase-4 G4-P1-3).
 - **AC-T-4** Mutation testing (Pitest) ≥ 70 % on `domain` and `application` packages on each PR build.
 - **AC-T-5** (G-P1-9) Every error response carries `Content-Type: application/problem+json`. Asserted in `ProblemDetailsContentTypeTest` as a cross-cutting test over the full error-code matrix.
+- **AC-T-6** (G8-P0-1) Rate-limit rejections occur **before** the `ContentGuard` decoder pipeline executes. Asserted via the metric `contentguard.invocations.count` (Phase 13 implementation: increments only inside the advice; load test under sustained rate-limit saturation confirms the counter stays at zero while the rate-limiter rejects). CPU profile of `ContentGuard.check` under rate-limited load shows no calls.
 

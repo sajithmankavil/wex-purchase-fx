@@ -5,6 +5,12 @@
 > **Phase-2 (Requirements Grill) update, 2026-05-14:** new section §Grill findings → IDs maps each G-P*-* finding to the FRs, NFRs, ACs, OQs, and risks it touches. See `docs/planning/requirements-grill.md`.
 >
 > **Phase-4 (Design Grill) update, 2026-05-17:** new section §Design grill findings → IDs maps each G4-P*-* finding to the FRs, NFRs, ACs, OQs, and risks it touches. See `docs/planning/design-grill.md`.
+>
+> **Phase-6 (Reliability & Scalability Grill) update, 2026-05-17:** new section §Reliability/Scalability grill findings → IDs maps each G6-P*-* finding. See `docs/planning/reliability-scalability-grill.md`.
+>
+> **Phase-7 (PCI Security Design Session) update, 2026-05-17:** 13 security docs in `docs/security/` populated; Phase-7 design decisions D-15..D-20 ratified; closes G4-P0-5 direction + G4-P1-1, G4-P1-11, G4-P1-15, G4-P1-16, G4-P1-26, G6-P1-5. Meta document in `docs/planning/pci-security-design-session.md`.
+>
+> **Phase-8 (PCI Adversarial Security Grill) update, 2026-05-17:** four P0 corrections pinned (decoder ordering G8-P0-1; audit destination re-categorised connected-to G8-P0-2; Unicode NFKC normalisation G8-P0-3; Treasury TPSP formal applicability G8-P0-4). Two new ACs (AC-010e, AC-T-6) and four new risks (R-038..R-041). See `docs/security/pci-security-grill.md`.
 
 ## Source → FR/NFR
 
@@ -196,4 +202,48 @@
 | F3 — "50 characters" = UTF-16 code units | KEEP | A-013, OQ-005 (stays NICE) |
 | F4 — `exchangeRate` at scale 6 | KEEP (Phase-4 G4-P0-3) | D-4, AC-014 |
 | F5 — `409 IDEMPOTENCY_CONFLICT` | KEEP for v1; revisit Phase 13 | OQ-009 (BLOCKING-for-prod) |
+
+## Reliability/Scalability grill findings → IDs (Phase 6)
+
+| Grill finding | Touched IDs | Status |
+|---|---|---|
+| G6-P0-1 CB sliding-window count-based dead at design traffic | failure-modes-and-resilience.md §3 (TIME_BASED pinned); R-033 (new) | Pinned in Phase 6 |
+| G6-P0-2 Single-flight loser violates AC-027d | ADR-0001 D-9 + component-design.md §3.2 (loser wait 10 s + outcome-ref pinned); R-034 (new); AC-027d (intent preserved; test surface refined) | Pinned in Phase 6; Phase 13 implements |
+| G6-P0-3 Cache-miss p99 anchor inconsistent | NFR-003 (1500 ms → 3000 ms); slo-sli.md SLO-G (1500 ms → 3000 ms) | Pinned in Phase 6 |
+| G6-P0-4 DB pool sizing at 80 % capacity | capacity-scalability-plan.md §1 / §2 (pool 10 → 20; ceiling note); R-035 (new) | Pinned in Phase 6 |
+| G6-P1-1 Cold-currency cliff | capacity-scalability-plan.md §4 (warm-up scope note); runbook §6.9; R-036 (new) | Phase 13 or accepted |
+| G6-P1-2 Bulkhead oversized | capacity-scalability-plan.md §1 (50 → 10); failure-modes-and-resilience.md §2 | Phase 13 config |
+| G6-P1-3 Hot cache range query | component-design.md §1 (two-level cache pattern note) | Phase 13 |
+| G6-P1-4 Graceful shutdown 30 s insufficient | deployment-architecture.md §4.3 (30 s → 60 s); R-037 (new) | Pinned in Phase 6 |
+| G6-P1-5 Audit-event rate limiter | threat-model.md TM-D-* (residual); Phase 7 | Phase 7 |
+| G6-P1-6 H2 single-writer note | capacity-scalability-plan.md §1 | Pinned in Phase 6 |
+| G6-P1-7 Multi-region DR trigger concrete | OQ-012 wording update | Phase 9 |
+| G6-P1-8 Canary cadence weekly → 24 h | monitoring-alerting.md §3.1 | Pinned in Phase 6 |
+| G6-P1-9 Mix profile 60/30/10 | capacity-scalability-plan.md §5 | Pinned in Phase 6 |
+| G6-P1-10 Postgres `max_connections` ceiling | capacity-scalability-plan.md §2; deployment-architecture.md §4 | Phase 12 |
+| G6-P1-11 JVM heap not stress-tested | capacity-scalability-plan.md §2 / §5 | Phase 13 |
+| G6-P1-12 100 % trace sampling unsustainable | observability.md §4 (Phase 13 follow-up) | Phase 13 |
+| G6-P2-1..G6-P2-10 | NICE clarifications | Mixed |
+
+## PCI security grill findings → IDs (Phase 8)
+
+| Grill finding | Touched IDs | Status |
+|---|---|---|
+| G8-P0-1 Decoder pipeline runs before rate-limiter (CPU DoS) | AC-T-6 (new); R-039 (new); component-design.md §3.5 (rate-limiter as servlet Filter; pinned) | Pinned Phase 8; Phase 13 realises |
+| G8-P0-2 Audit destination categorisation: connected-to | pci-scope-and-cde.md §2 (re-categorised); logging-monitoring-pci.md §7b (mitigating-argument added) | Pinned Phase 8 |
+| G8-P0-3 Unicode confusable PAN bypass (NFKC pre-pass) | AC-010e (new); R-038 (new); component-design.md §3.5 (NFKC pre-pass pinned) | Pinned Phase 8; Phase 13 realises |
+| G8-P0-4 Treasury TPSP formal applicability decision | third-party-service-provider-pci.md §1a (new formal section) | Pinned Phase 8 |
+| G8-P1-1 Multi-encoding chain residual | threat-model.md AB-014; pci-security-design-session.md §3.5 references | Documented |
+| G8-P1-2 CVV-shape detection gap | Documented residual in pci-security-grill.md §2 + cardholder-data-classification.md §3 | Documented |
+| G8-P1-3 Vulnerability-mgmt exception cap (max 5 active C/H) | vulnerability-management-pci.md §4 (pinned) | Pinned Phase 8 |
+| G8-P1-4 Audit-of-audit destination separately controlled | Phase-12 hand-off | Phase 12 |
+| G8-P1-5 Image-signing trust chain | secure-config-hardening.md (Phase 12 follow-on) | Phase 12 |
+| G8-P1-6 GitHub SOC 2 freshness check | third-party-service-provider-pci.md §4 (pinned) | Pinned Phase 8 |
+| G8-P1-7 PAN-guard false-positive 0.1% threshold | monitoring-alerting.md A-021 (Phase-13 baseline) | Phase 13 |
+| G8-P1-8 Pen-test scope boundaries | penetration-test-plan.md (Phase 12 follow-on) | Phase 12 |
+| G8-P1-9 HMAC dictionary-attack residual | logging-monitoring-pci.md §7b; R-040 (accepted residual) | Documented |
+| G8-P1-10 Local-mode rejected-payload invariant | LoggingPiiGuardTest in local profile; README warning | Phase 13 |
+| G8-P1-11 ADR consolidation | Phase 9 | Phase 9 |
+| G8-P1-12 security-profile.yml runtime check | Phase 13 startup check | Phase 13 |
+| G8-P2-1..G8-P2-8 | NICE clarifications | Mixed |
 

@@ -25,7 +25,7 @@
 
 - **NFR-001 (P0).** p99 end-to-end latency for `POST /api/v1/purchases` ≤ **150 ms** at steady-state nominal load (proposed). Excludes Treasury API time (only applies to FR-001).
 - **NFR-002 (P0).** p99 end-to-end latency for `GET /api/v1/purchases/{id}` ≤ **80 ms** at steady-state nominal load (proposed).
-- **NFR-003 (P0).** p99 end-to-end latency for `GET /api/v1/purchases/{id}/conversion` ≤ **300 ms** at steady-state nominal load on **cache hit**; p99 ≤ **1500 ms** on cache miss (calling Treasury API). Cache-hit ratio target ≥ 95 % steady-state (proposed).
+- **NFR-003 (P0).** p99 end-to-end latency for `GET /api/v1/purchases/{id}/conversion` ≤ **300 ms** at steady-state nominal load on **cache hit**; p99 ≤ **3000 ms** on cache miss (calling Treasury API). Cache-hit ratio target ≥ **99 %** steady-state (Phase-5 ratified). **Phase-6 G6-P0-3:** cache-miss anchor raised from 1500 ms to 3000 ms; the original 1500 ms was inconsistent with the Treasury client's 4-attempt retry budget (~6 s worst case). 3000 ms admits two Treasury attempts comfortably while remaining acceptable for a rare (≤ 1 % of traffic) path.
 - **NFR-004 (P1).** Cold-start time (process boot to readiness=UP) ≤ **15 s** on the reference container image.
 
 ## Availability & reliability
