@@ -1,8 +1,12 @@
 chunk_id: 13-PRE-dossier-bootstrap
-status: summary_posted
+status: accepted
 prompt_sha: c3b94d5b99dbc5d96dd1d7740d18cb71fa7f3c4d
 summary_sha: 5521f28fc7ded7f70012a2cc980ff3b5e137f59c
+review_sha: 0ec54de7031803f0208b1cd0aae6ce8e19375341
+clarification_sha: 37f0c06d1517531a739916f34fdb5cc7a7bb711d  # see 35-clarification.md
 pr: 3
-ci_url: null  # set after this PR's CI run completes
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26000171841
 deviations_open: []
+review_conditions: [normalize-line-endings-before-merge]  # see 30-review.md §5; implementer pushback in 35-clarification.md
+clarification_pending: [line-ending-finding]  # awaiting reviewer response to 35-clarification.md
 next_chunk: 13-PRE-readiness-check-fix
