@@ -1,13 +1,23 @@
 chunk_id: 13-A2-application
-status: summary_posted
+status: accepted   # reviewer verdict 2026-05-17 — ACCEPTED WITH CONDITIONS (non-blocking for A2 merge; conditions scope-tagged to B/C)
 prompt_sha: 8eb727240f9fa0f676c96aba117f28e7363facc8
 summary_sha: 0c13121c82336c99ccd4ca998f427024b055ac61
-review_sha: null
+review_sha: 0ce9b7d920a6fab64285738fe481503f27498bb0
 pr: 5
 ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26003276169
 deviations_open: []
-review_conditions: []
+review_conditions:
+  - pom-coverage-mutation-extension-for-application   # MED; scope: chunk-b. See 30-review.md §3.1 and §6.
+  - hot-cache-upsert-invalidation-contract            # LOW; scope: chunk-b. See 30-review.md §3.2 and §6.
+  - api-layer-currency-input-hashing-on-emit          # LOW; scope: chunk-c. See 30-review.md §5 and §6.
 follow_ups: []
 next_chunk: 13-B-infrastructure
 depends_on: [13-A1-domain]
 depends_on_satisfied: true  # A1 merged to main (commit 04f19aa) 2026-05-17
+reviewer_note: |
+  ACCEPTED WITH CONDITIONS per chunks/13-A2-application/30-review.md.
+  Code-correctness verdict: PR #5 may merge as-is. The three conditions
+  above are intake items for Chunks B (two conditions) and C (one
+  condition) — they are not pre-merge gates for A2. Implementer should
+  fold them into chunks/13-B-infrastructure/00-prompt.md (or address them
+  inside B's PR) and chunks/13-C-api-observability/00-prompt.md.
