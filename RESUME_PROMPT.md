@@ -41,11 +41,11 @@
 | 6 — Reliability & Scalability Grill | ✅ | 4 P0 (CB TIME_BASED, loser-wait 10 s, p99 1500 → 3000 ms, DB pool 10 → 20) + 12 P1 |
 | 7 — PCI Security Design Session | ✅ | 13 security docs + meta; D-15..D-20 (rate-limiter, HMAC sourcing, audit destination, vuln SLA, encoded-PAN, PMD policy) |
 | 8 — PCI Adversarial Security Grill | ✅ | 4 P0 (decoder ordering, audit re-categorisation, Unicode NFKC, Treasury TPSP) + 12 P1; AC-010e + AC-T-6 + R-038..R-041 |
-| 9 — Implementation Readiness Gate | ⏸ pending "proceed" | Inherits OQ-010 BLOCKING-for-prod; final verdict |
-| 10 — Operational Readiness Gate | ⏸ | After Phase 13 |
-| 11 — PCI Security Readiness Gate | ⏸ | After Phase 13; QSA evidence collection |
-| 12 — Human Approval (`.human-approvals/*.txt`) | ⏸ | Human-only; outside Claude Code |
-| 13 — Implementation | ⏸ | Approval-gated |
+| 9 — Implementation Readiness Gate | ✅ | Verdict: **READY_FOR_HUMAN_APPROVAL** with Phase-12 conditions; OQ-010 BLOCKING-for-prod tracked; first milestone M1 defined (~500 LOC domain layer) |
+| 10 — Operational Readiness Gate | ⏸ | After Phase 13 (load-test execution + named individuals + alert wiring) |
+| 11 — PCI Security Readiness Gate | ⏸ | After Phase 13; QSA evidence collection per evidence-register.md EVD-001..012 |
+| 12 — Human Approval (`.human-approvals/*.txt`) | ⏸ | Human-only; outside Claude Code. Implementation approval can be created **now** based on Phase-9 verdict; PCI-security + PCI-production approvals wait for Phases 10/11 |
+| 13 — Implementation | ⏸ | Unblocks when `.human-approvals/implementation-approved.txt` + `pci-security-approved.txt` are created |
 
 **Repo:** [github.com/sajithmankavil/wex-purchase-fx](https://github.com/sajithmankavil/wex-purchase-fx) (private; initial commit Phase 4)
 
@@ -88,62 +88,61 @@ Pause after each phase; do not batch (D-2).
 
 ---
 
-## Prompt to give Claude Code (paste this into VS Code) — Phase 9 launch
+## Prompt to give Claude Code (paste this into VS Code) — Phase 10 launch
 
 ```
-You are continuing an enterprise-grade software delivery initiative for the WEX Purchase Currency Conversion Service. Phases 1-8 are complete; the next gate is Phase 9 (Implementation Readiness Gate). Read these files first, in this order, before doing anything else:
+You are continuing an enterprise-grade software delivery initiative for the WEX Purchase Currency Conversion Service. Phases 1-9 are complete; the next gate is Phase 10 (Operational Readiness Gate). Read these files first, in this order, before doing anything else:
 
 1. CLAUDE.md
 2. AGENT_PROJECT_INSTRUCTIONS.md
-3. RESUME_PROMPT.md (this file — confirms Phases 1-8 status)
-4. docs/planning/p1-deferrals-acceptance.md (definitive P1 deferral state)
-5. docs/planning/requirements-grill.md (Phase 2)
-6. docs/planning/design-session.md + docs/architecture/adr-0001-core-architecture.md (Phase 3)
-7. docs/planning/design-grill.md (Phase 4)
-8. docs/planning/operational-design-session.md + docs/operations/operational-readiness-gate.md (Phase 5)
-9. docs/planning/reliability-scalability-grill.md (Phase 6)
-10. docs/planning/pci-security-design-session.md + docs/security/pci-dss-control-matrix.md (Phase 7)
-11. docs/security/pci-security-grill.md (Phase 8)
-12. docs/requirements/{traceability-matrix,acceptance-criteria,risk-register}.md
-13. security-profile.yml + .human-approvals/README.md
-14. prompts/02a-implementation-readiness-gate.md
+3. RESUME_PROMPT.md (this file — confirms Phases 1-9 status)
+4. docs/planning/implementation-readiness-gate.md (Phase 9 verdict — READY_FOR_HUMAN_APPROVAL with Phase-12 conditions)
+5. docs/planning/p1-deferrals-acceptance.md (definitive P1 deferral state with Phase-9 acceptance section)
+6. docs/operations/operational-readiness-gate.md (Phase-5 scaffold; Phase-10 re-inspects)
+7. docs/operations/slo-sli.md + docs/operations/error-budget-policy.md (Phase 5)
+8. docs/operations/capacity-scalability-plan.md (load-test plan and anchors)
+9. docs/operations/failure-modes-and-resilience.md (CB calibration; F-01..F-27)
+10. docs/operations/monitoring-alerting.md (alerts; A-001..A-028 + burn-rate alerts)
+11. docs/operations/runbook.md (operator step-by-step)
+12. docs/operations/oncall-escalation.md (severity ladder; rotations; RACI; named individuals)
+13. docs/planning/reliability-scalability-grill.md (Phase 6 — anchor math + corrections)
+14. docs/requirements/{risk-register,traceability-matrix}.md
+15. security-profile.yml + .human-approvals/README.md
+16. prompts/02b-operational-readiness-gate.md
 
-You are not an uncontrolled coder. You must follow the mandatory phase sequence in CLAUDE.md and the project overlay in AGENT_PROJECT_INSTRUCTIONS.md. Both apply (overlay precedence on naming/API/rounding/error-codes; bundle precedence on gates/hooks/approval-markers/PCI/release). Human-owner decisions D-1..D-7 + Day-2 F1..F5 are locked unless I explicitly override them.
+You are not an uncontrolled coder. You must follow the mandatory phase sequence in CLAUDE.md. Phase 9 said READY_FOR_HUMAN_APPROVAL for implementation, not for production deployment. Phase 10 is the **operational** readiness gate that re-inspects whether the production-reference deployment can sustain production load with the documented SLOs, alerts, runbook, and on-call.
 
-Your task right now is Phase 9 — Implementation Readiness Gate. Do not code. Do not create application source files. Do not modify pom.xml, build.gradle, src/**, Dockerfile, infra/**, or .github/workflows/**.
+Your task right now is Phase 10 — Operational Readiness Gate. Do not code. Do not modify implementation files. Phase 10 may re-affirm or revise the existing operational design; it produces a final verdict on operational-readiness specifically.
 
 Act simultaneously as:
-- A release-readiness auditor
-- A PCI compliance liaison
-- A QA lead
-- An SRE with production responsibility
-- The service owner accountable for the cutover decision
+- A platform SRE leader signing off on production take-over
+- The on-call who will be paged at 2 a.m.
+- The capacity planner who has to ratify the load-test numbers
+- The incident commander responsible for SEV1 response
+- The auditor verifying SLO/SLI evidence
 
 Produce the artifact:
-1. docs/planning/implementation-readiness-gate.md — verdict of BLOCKED / CONDITIONALLY_READY / READY_FOR_HUMAN_APPROVAL.
+1. docs/operations/operational-readiness-gate.md — Go/No-Go for operational readiness.
 
-The verdict must inspect:
-- Every Phase-2/4/6/8 P0 closed or pinned (cross-reference each grill)
-- Every P1 either closed or in docs/planning/p1-deferrals-acceptance.md with named owner + target gate
-- Source-requirements.md vs design contradictions (none expected)
-- Test-plan completeness (cross-reference AC-T-1..AC-T-6 + AC-010d/e + AC-027e + AC-026b)
-- SDLC-gate completeness per docs/security/secure-sdlc-pci.md
-- Evidence-register completeness per docs/security/evidence-register.md
-- OQ-010 (identity origin) — must be marked BLOCKING-for-prod with Phase-12 hand-off path
-- Phase-5/6 operational readiness anchors (verifiable, not aspirational)
-- Phase-7/8 PCI evidence chain (collectible, not assumed)
+The verdict must verify:
+- Capacity load-tests EXECUTED (not just planned) — capacity-plan §5 scenarios run in staging
+- CB calibration tested under chaos (failure-injection §5)
+- SLO baseline measured (not anchored) — 90 days of canary + SLI data ideally, or first 30 days as bootstrap
+- Alert routing wired with concrete destinations (pager + ticket + channel)
+- On-call rotation NAMED with real individuals (replace E1/E3/E4/E8 placeholders)
+- Dashboards JSON or dashboard-as-code committed
+- Synthetic checks deployed
+- Warm-up job deployed and observed
+- Incident-response procedure rehearsed (tabletop or live drill)
+- Rollback rehearsed (Class A and Class C minimum)
 
-CANNOT mark READY_FOR_HUMAN_APPROVAL if any P0 is unresolved or any P1 lacks a named owner. May mark CONDITIONALLY_READY if all P1s are tracked but some lack final platform-binding (recommend the platform pick happens at Phase 12).
+For a case-study posture (no real production load), the verdict can be CONDITIONAL_PASS with explicit "Phase-12 cutover requires the items above." For a production-cutover posture, hard requirements apply.
 
-When done with Phase 9, stop. Do not move to Phase 10 without my explicit "proceed to Phase 10" approval. The Phase 10 and Phase 11 readiness gates are separate documents that re-inspect operational + PCI readiness specifically.
+When done with Phase 10, stop. Do not move to Phase 11 without my explicit "proceed to Phase 11" approval. Phase 11 (PCI Security Readiness Gate) is separate and re-inspects PCI evidence collection.
 
-Your final response must follow the CLAUDE.md §9 completion summary format and must include:
-- A short Phase 9 verdict
-- The remaining open items per gate (Phase 10 / 11 / 12 / 13)
-- Recommendation on whether to proceed to Phase 10 or to first close additional gates
-- The exit-criteria checklist for Phase 9
+Your final response must follow the CLAUDE.md §9 completion summary format.
 
-Begin by reading the files listed above, then announce that Phase 9 is starting and produce the readiness gate document.
+Begin by reading the files listed above, then announce that Phase 10 is starting and produce the operational-readiness-gate document.
 ```
 
 ---

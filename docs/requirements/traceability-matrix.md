@@ -11,6 +11,8 @@
 > **Phase-7 (PCI Security Design Session) update, 2026-05-17:** 13 security docs in `docs/security/` populated; Phase-7 design decisions D-15..D-20 ratified; closes G4-P0-5 direction + G4-P1-1, G4-P1-11, G4-P1-15, G4-P1-16, G4-P1-26, G6-P1-5. Meta document in `docs/planning/pci-security-design-session.md`.
 >
 > **Phase-8 (PCI Adversarial Security Grill) update, 2026-05-17:** four P0 corrections pinned (decoder ordering G8-P0-1; audit destination re-categorised connected-to G8-P0-2; Unicode NFKC normalisation G8-P0-3; Treasury TPSP formal applicability G8-P0-4). Two new ACs (AC-010e, AC-T-6) and four new risks (R-038..R-041). See `docs/security/pci-security-grill.md`.
+>
+> **Phase-9 (Implementation Readiness Gate) update, 2026-05-17:** verdict **READY_FOR_HUMAN_APPROVAL** with explicit Phase-12 hand-off conditions. 18/18 P0s closed; ~30/50 P1s closed in-phase; remainder tracked in `docs/planning/p1-deferrals-acceptance.md` with named owners + target gates. OQ-010 BLOCKING-for-prod. First implementation milestone M1 defined (~500 LOC; pure domain layer). See `docs/planning/implementation-readiness-gate.md`.
 
 ## Source → FR/NFR
 

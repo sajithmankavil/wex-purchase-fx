@@ -1,7 +1,7 @@
 # P1 Deferrals Acceptance — Phases 2, 4, 6, 8
 
 > **Status:** ACCEPTED — 2026-05-17 (acceptance implied by future human "proceed to Phase N" commands; this document is the explicit tracking record).
-> **Last updated:** 2026-05-17 end of Phase 8. Phases 5/6/7/8 closures added below.
+> **Last updated:** 2026-05-17 end of Phase 9. Phases 5/6/7/8 closures recorded in §4a; Phase-9 acceptance summary recorded in §6.
 > **Purpose:** [CLAUDE.md](../../CLAUDE.md) Gate 3 says *"Implementation is blocked while any P0 or unresolved P1 exists."* The Phase-2 and Phase-4 grills produced P1 findings whose resolution genuinely belongs to a later gate (capacity data needed for calibration, PCI design needed for security wiring, etc.). This document **explicitly accepts those deferrals**, names the target gate where each closes, and identifies the owner — so the bundle's letter and the project's spirit stay aligned.
 > **Linked artefacts:** [requirements-grill.md](requirements-grill.md), [design-grill.md](design-grill.md), [day-1-ratifications.md](day-1-ratifications.md).
 
@@ -147,6 +147,18 @@ The Phase-2 and Phase-4 deferrals tracked above were largely closed in Phases 5�
 - **Carried to Phase 12 (pre-prod):** ~ 6 (named-individual handoff, platform-specific picks)
 - **Carried to Phase 13 (implementation):** ~ 12 (PMD ruleset, CSI mount wiring, servlet Filter wiring, NFKC normalisation, contract tests, OpenAPI consumer-usability, graceful-shutdown test, idempotency-key test set, OQ-010 identity-at-gateway, deferred warm-up, baseline measurements)
 - **Carried to Phase 9 (implementation readiness):** OQ-010 (BLOCKING-for-prod) — already in the gate criteria
+
+## 6. Phase-9 Implementation-Readiness-Gate acceptance (2026-05-17)
+
+[implementation-readiness-gate.md](implementation-readiness-gate.md) verdict: **READY_FOR_HUMAN_APPROVAL** with conditions.
+
+The Phase-9 inspection confirmed:
+- All 18 P0s across Phases 2/4/6/8 are closed or pinned at gate exit.
+- All ~50 P1s are either resolved in-phase or tracked here with named owners + target gates.
+- No P1 is "stuck" without an owner or a closure path.
+- The case-study posture can ship past Phase 9; production cutover (Phase 12) waits for Phase 10 + Phase 11 to close and for the named-individual placeholders (E1, E3, E4, E8) to resolve.
+
+The Phase-12 carry-forward list (8 items including OQ-010) is the **explicit hand-off**: it does not invalidate this acceptance; it scopes what must happen before production.
 
 ## 5. What this document does not do
 
