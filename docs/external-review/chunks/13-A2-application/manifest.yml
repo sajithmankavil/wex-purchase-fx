@@ -1,6 +1,6 @@
 chunk_id: 13-A2-application
-status: prompt_received
-prompt_sha: null  # set by implementer via `git hash-object 00-prompt.md` after this commit
+status: implementing
+prompt_sha: 8eb727240f9fa0f676c96aba117f28e7363facc8
 summary_sha: null
 review_sha: null
 pr: null
@@ -9,4 +9,5 @@ deviations_open: []
 review_conditions: []
 follow_ups: []
 next_chunk: 13-B-infrastructure
-depends_on: [13-A1-domain]   # cannot start until A1 merges to main
+depends_on: [13-A1-domain]
+depends_on_satisfied: true  # A1 merged to main (commit 04f19aa) 2026-05-17
