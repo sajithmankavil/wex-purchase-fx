@@ -27,6 +27,16 @@ public final class Money {
 
     private final BigDecimal amount;
 
+    // DELIBERATE PLANT (Phase 13 Chunk A1 ArchUnit fitness-function verification).
+    // This `double` field exists ONLY to confirm the ArchUnit rule
+    // `noDoubleOrFloatFieldsInDomainOrApplication` (ArchitectureTests.java) actually
+    // fires red when a forbidden primitive lands in the domain layer.
+    // The very next commit (revert) removes this field.
+    // Reviewer: run `mvn test` against THIS commit to observe the ArchUnit failure;
+    // then run `mvn test` against the revert commit to observe it pass.
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
+    private final double __archUnitPlant = 0.0;
+
     private Money(BigDecimal amount) {
         this.amount = amount;
     }
