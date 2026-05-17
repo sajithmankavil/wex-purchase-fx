@@ -4,9 +4,9 @@
 
 | Chunk ID | Status | PR | Open deviations | Next |
 |---|---|---|---|---|
-| 13-PRE-dossier-bootstrap | summary_posted | (this PR) | — | reviewer 30-review.md |
-| 13-PRE-readiness-check-fix | prompt_received | — | — | implementer execution |
-| 13-A1-domain | under_review | #2 | ops-check-strict-flip | reviewer 30-review.md after fix merges + A1 rebases |
+| 13-PRE-dossier-bootstrap | summary_posted | #3 | — | reviewer 30-review.md |
+| 13-PRE-readiness-check-fix | summary_posted | #4 (CI green) | — | reviewer 30-review.md; merge unblocks A1 |
+| 13-A1-domain | under_review | #2 | ops-check-strict-flip (resolved by #4; pending rebase) | rebase on main after #4 merges; reviewer 30-review.md |
 
 Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded`.
 

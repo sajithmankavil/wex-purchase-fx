@@ -1,8 +1,8 @@
 chunk_id: 13-PRE-readiness-check-fix
-status: prompt_received
+status: summary_posted
 prompt_sha: 9c056a30c0563b1cef13292e7c5808df43a723c5
-summary_sha: null
-pr: null
-ci_url: null
+summary_sha: ac264c213e0962a04bf00c9a470ca8eb578b1106
+pr: 4
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26000104744
 deviations_open: []
 next_chunk: 13-A1-domain
