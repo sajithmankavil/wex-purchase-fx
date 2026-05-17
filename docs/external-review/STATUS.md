@@ -8,8 +8,10 @@
 | 13-PRE-readiness-check-fix | accepted | #4 (squash) | `fdfe8e9` | — closed |
 | 13-A1-domain | accepted | #2 (rebase) | `04f19aa` (plant `3e03380` + revert `04f19aa` preserved) | — closed |
 | 13-A2-application | accepted | #5 (rebase) | `48dc656` + dossier follow-ups | — closed |
-| 13-B-infrastructure | deviation_surfaced | — | — | reviewer responds to `chunks/13-B-infrastructure/10-deviation.md` (B1/B2 split proposal) |
-| 13-C-api-observability | prompt_received | — | — | starts after B (or B2) merges; intake condition in `chunks/13-C-api-observability/15-clarification.md` |
+| 13-B-infrastructure | superseded | — | — | superseded by `13-B1-persistence-cache` + `13-B2-treasury-singleflight` per `chunks/13-B-infrastructure/30-review.md` |
+| 13-B1-persistence-cache | prompt_received | — | — | implementer reads `00-prompt.md` (absorbs both A2 intake items inline) and starts on `feature/chunk-b1-persistence-cache` off `main` |
+| 13-B2-treasury-singleflight | prompt_received | — | — | starts after B1 merges; `00-prompt.md` ready |
+| 13-C-api-observability | prompt_received | — | — | starts after B2 merges; intake condition in `chunks/13-C-api-observability/15-clarification.md` |
 
 Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded`.
 
@@ -20,8 +22,10 @@ Status enum: `prompt_received | deviation_surfaced | implementing | summary_post
 13-PRE-readiness-check-fix      ← accepted, merged fdfe8e9
 13-A1-domain                    ← accepted, merged 04f19aa (plant+revert preserved)
 13-A2-application               ← accepted, merged 48dc656
-13-B-infrastructure             ← deviation_surfaced — proposed B1/B2 split (LOC overage ~2,800 vs hard 1,800)
-13-C-api-observability          ← prompt_received (pre-staged) — final chunk
+13-B-infrastructure             ← superseded by B1+B2 (LOC overage 2,800 vs hard 1,800 — split accepted)
+13-B1-persistence-cache         ← prompt_received (absorbs both A2 intake items inline) — ~1,300 LOC est., rollback class C
+13-B2-treasury-singleflight     ← prompt_received — ~1,400 LOC est., rollback class A
+13-C-api-observability          ← prompt_received (pre-staged) — depends on B2 — final chunk
 ```
 
 ## Autonomous-handoff protocol (added 2026-05-17)
@@ -36,7 +40,8 @@ True file-watch ("watch for each other and go") requires a GitHub Action on `doc
 
 ## Recent reviewer activity
 
-- 2026-05-17 — Wrote `chunks/13-B-infrastructure/15-clarification.md` (2 intake items: pom coverage/mutation extension MED + hot-cache upsert-invalidation contract LOW) and `chunks/13-C-api-observability/15-clarification.md` (1 intake item: API-layer currency-input hashing LOW). These extend the immutable `00-prompt.md` files with the A2 review conditions per the dossier's immutability rule. Dev agent will read them when starting B / C.
+- 2026-05-17 — Accepted Option (a) on `chunks/13-B-infrastructure/10-deviation.md` (B1/B2 capacity-overage split). `chunks/13-B-infrastructure/30-review.md` records the supersession; B is now `status: superseded` with `superseded_by: [13-B1-persistence-cache, 13-B2-treasury-singleflight]`. Created two new chunk dossiers: `chunks/13-B1-persistence-cache/{00-prompt.md, manifest.yml}` (absorbs both A2 intake items inline; ~1,300 LOC, rollback class C) and `chunks/13-B2-treasury-singleflight/{00-prompt.md, manifest.yml}` (~1,400 LOC, rollback class A, depends on B1). Rewired `chunks/13-C-api-observability/manifest.yml` `depends_on` from `[13-B-infrastructure]` to `[13-B2-treasury-singleflight]`. Dev agent may start B1 immediately.
+- 2026-05-17 — Wrote `chunks/13-B-infrastructure/15-clarification.md` (2 intake items: pom coverage/mutation extension MED + hot-cache upsert-invalidation contract LOW) and `chunks/13-C-api-observability/15-clarification.md` (1 intake item: API-layer currency-input hashing LOW). The two B-scoped items have now been absorbed inline into `chunks/13-B1-persistence-cache/00-prompt.md` since the original B chunk is superseded; the C-scoped item remains active. Dev agent reads B1's prompt directly — no reference into the superseded folder required.
 - 2026-05-17 — Reviewed `13-A2-application` (PR #5). Verdict: ACCEPTED WITH CONDITIONS. `chunks/13-A2-application/30-review.md`. Three conditions surfaced and scope-tagged: (1) MED — `pom.xml` JaCoCo `check` and Pitest `<targetClasses>` do not cover `application/*`, so the A2 prompt's NFR-021 gates are declared but not build-enforced; mandatory for Chunk B intake. (2) LOW — Hot-cache window-completeness contract risk: `ConversionService` treats cache hits as authoritative, but per-(currency, recordDate) cache cannot guarantee window-completeness — Chunk B's upsert adapter must invalidate per-key on every upsert (or grow a bulk-invalidate). (3) LOW — `InvalidCurrencyException` carries a raw currency string; Chunk C's `@RestControllerAdvice` must hash via `DescriptionHasher` before emission. PR #5 may merge as-is; conditions are intake items, not pre-merge gates.
 - 2026-05-17 — Withdrew §5 line-ending finding on `13-PRE-dossier-bootstrap` after implementer's `35-clarification.md` showed PR diff is `+790/-0` (pure additions, no churn); my original `git diff` was working-tree-vs-index on Windows-CRLF + LF-index, not the actual PR diff. See `chunks/13-PRE-dossier-bootstrap/30-review-v2.md`. PR #3 now has zero pre-merge conditions.
 - 2026-05-17 — Pre-staged `13-A2-application` + `13-B-infrastructure` + `13-C-api-observability` (00-prompt + manifest each). Implementer can chain through all four remaining chunks without further reviewer round-trips for kickoff.

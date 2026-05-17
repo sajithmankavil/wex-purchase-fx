@@ -1,15 +1,16 @@
 chunk_id: 13-B-infrastructure
-status: deviation_surfaced
+status: superseded   # reviewer accepted the B1/B2 split per chunks/13-B-infrastructure/30-review.md 2026-05-17
 prompt_sha: b11aaca0124d1002bf0d71aa111b99be65a0fd7c
-clarification_sha: 8d47bb245b91038d116db772d3caf58edc3b1f71  # 15-clarification.md (A2 intake items)
+clarification_sha: 8d47bb245b91038d116db772d3caf58edc3b1f71  # 15-clarification.md (A2 intake items — propagated inline into B1's 00-prompt.md)
 deviation_sha: 6a0bd0b980327e59c9915f5c503ea52ae5d5faa8     # 10-deviation.md (B1/B2 split proposal)
+review_sha: 5c13ec52354089ff167916ebbe4de7a663729cab
 summary_sha: null
-review_sha: null
 pr: null
 ci_url: null
-deviations_open: [capacity-overage-proposed-b1-b2-split]
-review_conditions: [pom-coverage-mutation-extension-for-application, hot-cache-upsert-invalidation-contract]  # carry-over from A2
+deviations_open: []   # capacity overage resolved by split
+review_conditions: []   # A2 intake items propagated to B1 (both)
 follow_ups: []
-next_chunk: 13-C-api-observability
+superseded_by: [13-B1-persistence-cache, 13-B2-treasury-singleflight]
+next_chunk: 13-B1-persistence-cache
 depends_on: [13-A2-application]
 depends_on_satisfied: true  # A2 merged to main 2026-05-17 (PR #5)
