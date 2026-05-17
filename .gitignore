@@ -10,6 +10,12 @@ secrets/
 credentials/
 service-account*.json
 
+# Human-approval markers — local-only evidence of approval, NEVER in git
+# (Phase 13 Chunk A1 lesson: the prior `feature/m1-domain` branch accidentally
+# committed them via `git add .`. The hooks read them from disk; the repo
+# must not carry them.)
+.human-approvals/*.txt
+
 # OS/editor
 .DS_Store
 .idea/
