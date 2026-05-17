@@ -1,0 +1,8 @@
+chunk_id: 13-PRE-readiness-check-fix
+status: prompt_received
+prompt_sha: 9c056a30c0563b1cef13292e7c5808df43a723c5
+summary_sha: null
+pr: null
+ci_url: null
+deviations_open: []
+next_chunk: 13-A1-domain

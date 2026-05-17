@@ -1,0 +1,8 @@
+chunk_id: 13-PRE-dossier-bootstrap
+status: summary_posted
+prompt_sha: c3b94d5b99dbc5d96dd1d7740d18cb71fa7f3c4d
+summary_sha: 5521f28fc7ded7f70012a2cc980ff3b5e137f59c
+pr: null
+ci_url: null
+deviations_open: []
+next_chunk: 13-PRE-readiness-check-fix

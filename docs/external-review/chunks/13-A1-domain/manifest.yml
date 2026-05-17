@@ -1,0 +1,8 @@
+chunk_id: 13-A1-domain
+status: under_review
+prompt_sha: 07434b2edbaaaf41eb75acfc7f190dd6d6022f37
+summary_sha: 3f51a053a8529c83b01a8e89a236752c05584be3
+pr: 2
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/25999465787
+deviations_open: [ops-check-strict-flip]
+next_chunk: 13-PRE-readiness-check-fix
