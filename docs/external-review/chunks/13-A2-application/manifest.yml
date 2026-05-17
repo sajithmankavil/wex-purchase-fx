@@ -1,10 +1,10 @@
 chunk_id: 13-A2-application
-status: implementing
+status: summary_posted
 prompt_sha: 8eb727240f9fa0f676c96aba117f28e7363facc8
-summary_sha: null
+summary_sha: 0c13121c82336c99ccd4ca998f427024b055ac61
 review_sha: null
-pr: null
-ci_url: null
+pr: null  # set after `gh pr create`
+ci_url: null  # set after CI run completes
 deviations_open: []
 review_conditions: []
 follow_ups: []
