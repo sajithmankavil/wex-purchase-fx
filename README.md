@@ -6,7 +6,7 @@ Java/Spring Boot service for the WEX take-home assessment. Stores USD purchase t
 
 ## 0. Tl;dr for assessors
 
-**30 seconds.** Three endpoints. Requirements 1 and 2 of the brief are met. **271 Java unit tests** pass in CI (`mvn test`); 45 Testcontainers integration tests run locally via `mvn verify` (Postgres + WireMock containers; not in CI — see §6). `mvn spring-boot:run -Dspring-boot.run.profiles=local` boots a self-contained service on H2 — no external DB / servlet container required, per the brief.
+**30 seconds.** Three endpoints. Requirements 1 and 2 of the brief are met. **238 unit-test methods** (executing as 271 test cases via parameterised expansion) pass in CI on `mvn test`; 45 Testcontainers integration tests run locally via `mvn verify` (Postgres + WireMock; not in CI — see §6). `mvn spring-boot:run -Dspring-boot.run.profiles=local` boots a self-contained service on H2 — no external database or servlet container required, per the brief.
 
 **5 minutes.** Read this README §§ 1–4 below + browse [`src/main/java/com/example/purchaseconversion/domain/`](src/main/java/com/example/purchaseconversion/domain/) (pure model, 398 LOC).
 
@@ -25,9 +25,9 @@ The brief asks for a 5-business-day take-home: store + retrieve + convert. **The
 - Treasury HTTP client + JDBC repos in [`src/main/java/.../infrastructure/`](src/main/java/com/example/purchaseconversion/infrastructure/)
 - ~3,800 production Java LOC, ~5,300 test Java LOC
 
-**Everything else** — the 129-doc dossier under [`docs/`](docs/), the 5 cross-cutting directives, the bulk-pass review protocol, the Phase 12 demonstrative ceremony, the PCI DSS v4.0.1 control mapping, the `ContentGuard` rejecting PAN-shaped descriptions — is a **deliberate enterprise-architecture exercise** beyond the brief, included to show how I'd scaffold a real production service if this were a real product.
+**Everything else** — the 131-doc dossier under [`docs/`](docs/), the 5 cross-cutting directives, the bulk-pass review protocol, the Phase 12 demonstrative ceremony, the PCI DSS v4.0.1 control mapping, the `ContentGuard` rejecting PAN-shaped descriptions — is a **deliberate enterprise-architecture exercise** beyond the brief, included to show how I'd scaffold a real production service if this were a real product.
 
-I went broad deliberately. If the assessor's interest is just "does the brief work?", read §§ 1–2 and run the three curl commands in §4 below. If the assessor's interest is "how does this person think about production engineering?", the dossier is the answer.
+I went broad deliberately. If the assessor's interest is just *"does the brief work?"*, read §§ 1–2 and run the three curl commands in §2. If the question is *"how does this person think about production engineering?"*, the dossier is the answer.
 
 **The scope additions and why they're there** are itemised in §5 below.
 
@@ -96,10 +96,11 @@ curl -s "http://localhost:8080/api/v1/purchases/01992a.../conversion?currency=Ca
 
 | | |
 |---|---:|
-| Production Java LOC | **3,842** across 51 files |
-| Test Java LOC | **5,316** across 37 files (23 `*Test.java` + 13 `*IT.java`) |
-| `@Test` + `@ParameterizedTest` annotations | **271 unit-test methods** (Surefire; in CI) + **45 integration tests** (Failsafe; local-only via `mvn verify` — Testcontainers Postgres 16 + WireMock 3.9) |
-| Test/code ratio | **1.38×** |
+| Production Java LOC | **3,872** across 51 files |
+| Test Java LOC | **5,402** across 37 files (23 `*Test.java` + 13 `*IT.java` + 1 base helper) |
+| Test methods | **238 in source** (226 `@Test` + 12 `@ParameterizedTest`) executing as **271 cases** in Surefire (parameter expansion) — all green in CI on `mvn test` |
+| Integration tests | **45** (Failsafe `*IT.java`) — local-only via `mvn verify`; require Testcontainers Postgres 16 + WireMock 3.9 |
+| Test/code ratio | **1.40×** |
 | Maven dependencies | 25 |
 
 ### Production code by hexagonal-architecture layer
@@ -108,8 +109,8 @@ curl -s "http://localhost:8080/api/v1/purchases/01992a.../conversion?currency=Ca
 |---|---:|---|
 | `domain` | 398 | Pure POJOs / value objects / entities / ports — no Spring, no DB, no HTTP |
 | `application` | 802 | `ConversionService` orchestration + 6-month rate-selection use case |
-| `infrastructure` | 1,248 | Persistence + Treasury client + single-flight gate + cache + health |
-| `api` | 979 | HTTP controllers + filters + DTOs + `@RestControllerAdvice` |
+| `infrastructure` | 1,256 | Persistence + Treasury client + single-flight gate + cache + health |
+| `api` | 1,009 | HTTP controllers + filters + DTOs + `@RestControllerAdvice` |
 | `observability` | 285 | `MetricsCatalog` + `DescriptionHasher` + warm-up listener |
 
 ### Quality gates (enforced in `pom.xml`; fail the `mvn verify` build)
@@ -242,11 +243,11 @@ Engineering author: **Sajith Mankavil** ([`sajith.mankavil@gmail.com`](mailto:sa
 
 ### 9.1 Honest CI-history note
 
-For most of this project's two-day active window the CI workflow's "Tests" step was a placeholder shim that only ran `npm test` or `pytest` — neither applied to a Java/Maven project. Every "CI green" claim in chunks `13-PRE-*` through `13-C3` was therefore **workflow-passed but Java-unrun**. The tests existed and the developer ran them locally before each PR; CI was not exercising them.
+For most of this project's two-day active window, the CI workflow's "Tests" step was a placeholder shim — `npm test` or `pytest`, neither of which applied to a Java/Maven project. Every "CI green" claim through chunk `13-C3` was therefore **workflow-passed but Java-unrun**. The tests existed and ran locally before each PR; CI was not exercising them.
 
-The external-assessor pass (PR #17) caught this as the very first finding and fixed it: `mvn test` now runs in CI on every PR, and the first real CI run surfaced **12 latent issues** (a record-accessor name collision; a Spring Boot 3.4-vs-3.3.5 annotation mismatch; a `@WebMvcTest` slice missing `RateLimiterRegistry`; an ApplicationContext-load failure from a duplicate-`@Primary` use-case bean; a Logback `StructuredArguments` test-fixture mismatch; a parameterised-test empty-displayName error; a clock-arithmetic timing bug in a health-indicator test; race conditions in two single-flight concurrency tests; BigDecimal scale not preserved in JSON output; PAN-shaped input echoed back via the RFC 9457 `instance` URI; a YAML-as-Python indentation trap; and an `addFilters` attribute on the wrong annotation). All twelve have been fixed in this PR and the suite is now green.
+PR #17 caught this as the first finding and fixed it: `mvn test` now runs in CI on every PR. The first real run surfaced **12 latent issues** — two real production defects (BigDecimal scale stripped on the wire; PAN-shaped input echoed back via the RFC 9457 `instance` URI), four ApplicationContext-load bugs, three test-correctness issues, two compile errors, and one concurrency-race test fix. Full inventory in [`AUDIT-BRIEF.md §7B`](AUDIT-BRIEF.md). All twelve are fixed; the suite is green.
 
-The lesson is recorded honestly here so the assessor reads it as a story about test discipline + observable systems exposing real problems, rather than as "tests always passed." Multiple of the twelve bugs would have shipped to production undetected if real CI hadn't been wired up before cutover.
+The lesson belongs in the README so an assessor reads it accurately: the test discipline existed locally, but the CI gating that was supposed to enforce it was broken. The fix is the story, not the bugs.
 
 ---
 

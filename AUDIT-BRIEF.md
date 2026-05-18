@@ -171,9 +171,9 @@ Domain depends on nothing. Application depends only on domain + ports. Infrastru
 
 | Dimension | Count | Notes |
 |---|---|---|
-| **Production Java LOC** | **3,842** across **51 files** | Hexagonal layout: `domain` / `application` (with `port.in` + `port.out`) / `infrastructure` / `api` / `observability` / `config`. |
-| **Test Java LOC** | **5,316** across **37 test classes** | Test:prod ratio **1.38:1**. ITs use Testcontainers Postgres 16 + WireMock 3.9. |
-| **Documentation LOC** | **17,261** across 142 `.md` files | architecture 1,675 / operations 2,034 / security 2,332 / requirements 1,105 / planning 2,387 / release 150 / external-review 7,961. |
+| **Production Java LOC** | **3,872** across **51 files** | Hexagonal layout: `domain` / `application` (with `port.in` + `port.out`) / `infrastructure` / `api` / `observability` / `config`. |
+| **Test Java LOC** | **5,402** across **37 test classes** | Test:prod ratio **1.40:1**. **238 test methods** (226 `@Test` + 12 `@ParameterizedTest`) executing as **271 cases** in Surefire. ITs use Testcontainers Postgres 16 + WireMock 3.9. |
+| **Documentation LOC** | **17,435** across **131 `.md` files under `docs/`** (193 `.md` repo-wide) | architecture 1,675 / operations 2,034 / security 2,332 / requirements 1,105 / planning 2,387 / release 150 / external-review 7,752. |
 | **Migrations** | Liquibase YAML changelogs | Forward-only; `LiquibaseMigrationIT` is the contract. |
 | **Quality gates** | **JaCoCo** domain line ≥ 0.85, domain branch ≥ 0.75; **Pitest** domain mutation ≥ 85 % | Module-scoped — domain is the strictest; application + infrastructure thresholds calibrated downward but enforced. |
 | **ArchUnit fitness functions** | Hexagonal-layer dependency rules + naming conventions | Pass on every CI run. |
@@ -309,7 +309,7 @@ The external-assessor pass on `chore/assessor-feedback-pass` (PR #17) caught thi
 **Severity of the bugs above**: 11 of 12 were silent — would have shipped to production without detection. #11 (BigDecimal scale) and #12 (PII via `instance` URI) are real production correctness/security defects, not just test bugs.
 
 **What this story says about the project**:
-- The test suite was substantive (271 unit tests + 45 ITs) and the developer ran it locally before each PR — that's why most of the implementation is correct.
+- The test suite was substantive (238 unit-test methods executing as 271 Surefire cases + 45 Failsafe ITs) and the developer ran it locally before each PR — that's why most of the implementation is correct.
 - But the dossier overclaimed "CI green" — the workflow was passing for trivial reasons, not because it had verified Java code. The reviewer agent's per-chunk `30-review.md` files and the consolidated HITL review all granted "ACCEPTED" verdicts based on this incomplete signal.
 - The honest framing for the assessor: **the test discipline existed locally; the CI gating was broken**. The external-assessor pass fixed the gating, and 12 latent bugs surfaced and were fixed. The verdict on the dossier's earlier claims should be re-weighted accordingly.
 
