@@ -1,13 +1,13 @@
 chunk_id: 13-B1-persistence-cache
-status: summary_posted
+status: under_review   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flip to `accepted` on merge per forward-motion mechanical-transition pattern
 prompt_sha: 87bc26e8bb31f6f4ecc95ff6b7277d04bb86c166
 summary_sha: e9c723524e87b9766ef91fae3aab25a9fd4f6b9c
-review_sha: null
+review_sha: b3fba20066ef797ce6b8bd432e9f569fc4d87dac
 pr: 7
 ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26010337208
 deviations_open: []
-review_conditions: [pom-coverage-mutation-extension-for-application, hot-cache-upsert-invalidation-contract]  # absorbed from A2; close at B1's 30-review
-follow_ups: []
+review_conditions: []   # both A2 intake items closed by 30-review.md §2 (with one residual MED tracked as follow_up) + §3
+follow_ups: [pitest-conversionservice-per-class-execution]   # per 30-review.md §2 finding (iii); option (a) preferred — 15-line pom edit
 supersedes_part_of: 13-B-infrastructure   # B1 + B2 jointly supersede the original B chunk
 next_chunk: 13-B2-treasury-singleflight
 depends_on: [13-A2-application]
