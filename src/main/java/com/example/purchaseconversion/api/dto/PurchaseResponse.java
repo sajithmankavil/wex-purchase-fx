@@ -25,7 +25,13 @@ public record PurchaseResponse(
         @Schema(description = "Purchase date (UTC).", example = "2026-05-10", format = "date")
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         LocalDate transactionDate,
+        // Shape.STRING preserves the BigDecimal's scale (trailing zeros) in JSON.
+        // Without it, Jackson outputs canonical form (4.50 -> 4.5), violating
+        // api-contracts.md §1's "exact scale preservation" requirement and the
+        // brief's "rounded to the nearest cent" expectation that the API always
+        // shows scale 2.
         @Schema(description = "USD amount, scale 2.", example = "123.45", type = "string")
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
         BigDecimal amountUsd) {
 
     public static PurchaseResponse of(Purchase p) {

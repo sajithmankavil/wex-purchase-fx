@@ -152,9 +152,18 @@ public class ProblemDetailExceptionHandler {
         Map<String, Object> idDetails = new LinkedHashMap<>();
         idDetails.put("hash", hashed);
         idDetails.put("length", length);
-        return respond(HttpStatus.BAD_REQUEST, "MALFORMED_IDENTIFIER",
+        ResponseEntity<ProblemDetail> resp = respond(HttpStatus.BAD_REQUEST, "MALFORMED_IDENTIFIER",
                 "Purchase identifier is not a valid UUID v7",
                 Map.of("reason", "malformed-uuid", "id", idDetails), null);
+        // C 30-review §4.7 follow-up — the RFC 9457 `instance` field defaults to the
+        // request URI (set by Spring's ProblemDetail processing), which echoes the
+        // raw malformed input in the path (e.g., /api/v1/purchases/<pan>). Override
+        // with a redacted placeholder so the raw value never appears in the response.
+        ProblemDetail body = resp.getBody();
+        if (body != null) {
+            body.setInstance(URI.create("/api/v1/purchases/<malformed>"));
+        }
+        return resp;
     }
 
     /**
