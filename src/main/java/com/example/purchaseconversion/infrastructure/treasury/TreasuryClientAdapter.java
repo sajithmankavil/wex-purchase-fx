@@ -6,6 +6,7 @@ import com.example.purchaseconversion.application.port.out.ExchangeRateRepositor
 import com.example.purchaseconversion.application.port.out.TreasuryClientPort;
 import com.example.purchaseconversion.domain.CurrencyDescriptor;
 import com.example.purchaseconversion.domain.ExchangeRate;
+import com.example.purchaseconversion.observability.MetricsCatalog;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
@@ -94,6 +95,18 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
     private final Retry retry;
     private final Bulkhead bulkhead;
     private final String ratesPath;
+
+    /**
+     * C3 §S4 carry-forward — wired by Spring via setter (autowired-required-false) so existing
+     * unit tests can construct the adapter without a catalog. Production beans receive the
+     * real registry-backed instance.
+     */
+    private MetricsCatalog metrics;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMetrics(MetricsCatalog metrics) {
+        this.metrics = metrics;
+    }
 
     public TreasuryClientAdapter(
             RestClient.Builder restClientBuilder,
@@ -228,6 +241,10 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
                     net.logstash.logback.argument.StructuredArguments.kv("outcome", outcome),
                     net.logstash.logback.argument.StructuredArguments.kv("latencyMs", latencyMs),
                     net.logstash.logback.argument.StructuredArguments.kv("errClass", err.getClass().getSimpleName()));
+        }
+        // C3 §S4 carry-forward — emit treasury.client.requests{outcome=<...>}
+        if (metrics != null) {
+            metrics.treasuryRequest(outcome);
         }
     }
 

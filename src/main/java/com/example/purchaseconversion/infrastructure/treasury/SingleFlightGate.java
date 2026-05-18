@@ -2,6 +2,7 @@ package com.example.purchaseconversion.infrastructure.treasury;
 
 import com.example.purchaseconversion.application.exception.UpstreamUnavailableException;
 import com.example.purchaseconversion.domain.CurrencyDescriptor;
+import com.example.purchaseconversion.observability.MetricsCatalog;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +57,17 @@ public class SingleFlightGate {
 
     private final ConcurrentHashMap<Key, State> gates = new ConcurrentHashMap<>();
     private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
+
+    /**
+     * C3 §S4 carry-forward — wired by Spring via setter (autowired-required-false) so
+     * existing unit tests can construct the gate without a catalog.
+     */
+    private MetricsCatalog metrics;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setMetrics(MetricsCatalog metrics) {
+        this.metrics = metrics;
+    }
 
     public SingleFlightGate(
             @Value("${wex.single-flight.loser-wait-ms:10000}") long loserWaitMillis,
@@ -138,14 +150,17 @@ public class SingleFlightGate {
         long deadline = System.currentTimeMillis() + loserWaitMillis;
         while (System.currentTimeMillis() < deadline) {
             if (shuttingDown.get()) {
+                emitLoserOutcome("shutdown");
                 throw new UpstreamUnavailableException("shutdown");
             }
             WinnerOutcome outcome = state.outcome.get();
             if (outcome != null && !outcome.success()) {
                 // Winner failed; mirror its exception type. AC-027d.
+                emitLoserOutcome("mirrored_failure");
                 throw mirror(outcome.failure());
             }
             if (dbHasResult.getAsBoolean()) {
+                emitLoserOutcome("db_hit");
                 return Outcome.LOSER_DB_HIT;
             }
             // Outcome might be SUCCESS but DB poll hasn't seen it yet — short sleep,
@@ -156,11 +171,20 @@ public class SingleFlightGate {
                 Thread.sleep(dbPollIntervalMillis);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
+                emitLoserOutcome("interrupted");
                 throw new UpstreamUnavailableException("loser_interrupted", ie);
             }
         }
         LOG.warn("single_flight.loser.timeout key={} waitMs={}", key, loserWaitMillis);
+        emitLoserOutcome("timeout");
         throw new UpstreamUnavailableException("loser_timeout");
+    }
+
+    /** C3 §S4 carry-forward — emit single_flight.loser_outcome{type=<...>} on every loser exit. */
+    private void emitLoserOutcome(String type) {
+        if (metrics != null) {
+            metrics.singleFlightLoserOutcome(type);
+        }
     }
 
     private static UpstreamUnavailableException mirror(RuntimeException winnerFailure) {

@@ -40,7 +40,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
         "resilience4j.circuitbreaker.instances.treasuryClient.minimum-number-of-calls=50",
         "resilience4j.retry.instances.treasuryClient.max-attempts=1",
-        "wex.ratelimit.permits-per-second=1000"
+        "wex.ratelimit.permits-per-second=1000",
+        // C2 30-review-v2 §2 — force the hot-cache to expire immediately so the second
+        // GET re-runs the Treasury fetch path and actually exercises the versioned-upsert.
+        // Without this, the first call's cached entry short-circuits before the revision
+        // is fetched and AC-026b is not exercised at the HTTP boundary.
+        "wex.cache.exchange-rate.expire-after-write-hours=0"
 })
 class RateRevisionEndToEndIT extends AbstractPostgresIT {
 
@@ -107,6 +112,9 @@ class RateRevisionEndToEndIT extends AbstractPostgresIT {
                 .isEqualByComparingTo("137.00");
 
         // Treasury REVISES the same (currency, record_date) with a later effective_date + new rate.
+        // Per C2 30-review-v2 §2 fix spec: do NOT delete exchange_rates; leave the original 1.370
+        // row in place so the second call exercises the actual versioned-upsert path. The cache
+        // is expired via the @TestPropertySource hours=0 override above.
         wireMock.resetAll();
         wireMock.stubFor(any(anyUrl()).willReturn(aResponse()
                 .withStatus(200)
@@ -119,17 +127,32 @@ class RateRevisionEndToEndIT extends AbstractPostgresIT {
                           "exchange_rate": "1.420" }
                     ] }""")));
 
-        // Force a cache invalidation by directly invalidating the hot-cache entry
-        // via the repository path — the next conversion call will see an empty
-        // hot-cache window and fall through to DB + Treasury.
-        jdbcClient.sql("DELETE FROM exchange_rates").update();
-
         ResponseEntity<String> second = rest.getForEntity(
                 "/api/v1/purchases/" + id + "/conversion?currency=CAD", String.class);
         assertThat(second.getStatusCode().value()).isEqualTo(200);
         JsonNode secondTree = objectMapper.readTree(second.getBody());
-        assertThat(secondTree.get("exchangeRate").asText()).isEqualTo("1.420000");
+        // (1) HTTP response carries the LATEST effective_date row (max(effective_date) wins).
+        assertThat(secondTree.get("exchangeRate").asText())
+                .as("AC-026b — second call returns the revised rate; latest effective_date wins")
+                .isEqualTo("1.420000");
         assertThat(new BigDecimal(secondTree.get("convertedAmount").asText()))
                 .isEqualByComparingTo("142.00");
+
+        // (2) Both rows persist — versioned-upsert added a NEW row, did not overwrite.
+        Long count = jdbcClient.sql(
+                "SELECT COUNT(*) FROM exchange_rates "
+                        + "WHERE country_currency_desc = 'Canada-Dollar' AND record_date = DATE '2026-04-15'")
+                .query(Long.class).single();
+        assertThat(count)
+                .as("AC-026b — both the original and revised rows persist for (CAD, 2026-04-15)")
+                .isEqualTo(2L);
+
+        // (3) The latest effective_date row is the revision (2026-04-20), not the original.
+        java.time.LocalDate latestEffective = jdbcClient.sql(
+                "SELECT effective_date FROM exchange_rates "
+                        + "WHERE country_currency_desc = 'Canada-Dollar' AND record_date = DATE '2026-04-15' "
+                        + "ORDER BY effective_date DESC LIMIT 1")
+                .query(java.time.LocalDate.class).single();
+        assertThat(latestEffective).isEqualTo(java.time.LocalDate.of(2026, 4, 20));
     }
 }

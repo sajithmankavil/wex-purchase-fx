@@ -1,5 +1,5 @@
 chunk_id: 13-C2-observability-cicd
-status: summary_posted   # 2026-05-18 — all S1 + S4 work complete; 8 conditions ADDRESSED; +1,448/-22 net, within 1,500 soft target
+status: under_review   # 2026-05-18 — reviewer verdict ACCEPTED WITH CONDITIONS in 30-review.md; all 8 narrowed-scope review_conditions closed (incl. §4.7 NEW MED); 2 partial-closure carry-forwards (§3 + §4) routed to C3; pre-merge protocol bend on PR# (§6) requires PR open + CI green before merge; flip to `accepted` post-merge per forward-motion mechanical transition.
 prompt_sha: ee426cf1e0e807731623d671cecf51f5149484e2
 clarification_sha: null   # set by `git hash-object 15-clarification.md` once committed
 deviation_sha: e8f719401955cc4d214538cfa1657b009b53823a

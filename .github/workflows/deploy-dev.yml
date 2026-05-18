@@ -1,27 +1,40 @@
-name: Deploy Dev
+name: Deploy — dev
+
+# C3 §S3 deploy skeleton. Manual-only. No marker gating — dev is the
+# always-on developer-facing environment. No production infrastructure
+# exists yet (Phase 12); the deploy step is a stub.
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy (default: this workflow run trigger SHA)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
 
 jobs:
   deploy-dev:
-    name: Deploy to Dev
+    name: Deploy to dev
     runs-on: ubuntu-latest
     environment: dev
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout target SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
 
-      - name: Build artifact
-        run: |
-          echo "Customize build command for your stack."
+      - name: Resolve target commit
+        id: target
+        run: echo "sha=${{ inputs.commit_sha || github.sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy to dev
+      - name: Deploy step (stub — real deploy wires in Phase 12)
         run: |
-          echo "Customize dev deployment."
-          echo "Do not put production secrets in this workflow."
+          echo "would deploy ${{ steps.target.outputs.sha }} to dev"
+          echo "no prod infrastructure exists yet; this is a process scaffold."
 
-      - name: Smoke test
+      - name: Smoke check (stub)
         run: |
-          echo "Customize smoke tests."
+          echo "would curl /actuator/health on the dev instance and assert 200"
