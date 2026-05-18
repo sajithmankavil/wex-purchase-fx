@@ -1,0 +1,44 @@
+meta {
+  name: 3. Convert to a target currency
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/purchases/{{purchaseId}}/conversion?currency=Canada-Dollar
+  body: none
+  auth: none
+}
+
+params:query {
+  currency: Canada-Dollar
+}
+
+tests {
+  test("200 OK", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("exchangeRate is scale-6 string", function () {
+    expect(res.getBody().exchangeRate).to.match(/^[0-9]+\.[0-9]{6}$/);
+  });
+
+  test("convertedAmount is scale-2 string", function () {
+    expect(res.getBody().convertedAmount).to.match(/^-?[0-9]+\.[0-9]{2}$/);
+  });
+}
+
+docs {
+  Convert the stored amount using the most recent Treasury exchange rate
+  with `record_date ≤ transactionDate` AND `transactionDate − record_date
+  ≤ 6 months` (the brief's 6-month rule; ADR-0001 D-5 with EOM clamp).
+
+  Returns 422 `CONVERSION_RATE_NOT_AVAILABLE` if no eligible rate exists
+  in window — matching the brief's "an error should be returned stating
+  the purchase cannot be converted to the target currency".
+
+  Response fields:
+  - `exchangeRate`: scale-6 string (e.g. `"1.370000"`)
+  - `convertedAmount`: scale-2 HALF_UP string (e.g. `"137.00"`)
+  - `exchangeRateDate`: the Treasury `record_date` actually selected
+}

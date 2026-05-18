@@ -1,0 +1,46 @@
+meta {
+  name: Error · malformed id → 400 MALFORMED_IDENTIFIER (hashed, redacted instance)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/purchases/4242424242424242
+  body: none
+  auth: none
+}
+
+tests {
+  test("400 Bad Request", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("errorCode is MALFORMED_IDENTIFIER", function () {
+    expect(res.getBody().errorCode).to.equal("MALFORMED_IDENTIFIER");
+  });
+
+  test("response does NOT contain the raw input", function () {
+    expect(JSON.stringify(res.getBody())).not.to.contain("4242424242424242");
+  });
+
+  test("instance URI is redacted", function () {
+    expect(res.getBody().instance).to.equal("/api/v1/purchases/redacted");
+  });
+
+  test("details.id.hash carries the vN: prefix", function () {
+    expect(res.getBody().details.id.hash).to.match(/^v[0-9]+:[0-9a-f]{64}$/);
+  });
+}
+
+docs {
+  Path-segment is not a valid UUID v7. The handler:
+
+  1. HMAC-SHA-256-hashes the raw input via `DescriptionHasher`.
+  2. Returns `details.id.{hash, length}` — never the raw value.
+  3. Overrides the RFC 9457 `instance` URI to `/api/v1/purchases/redacted`
+     so the raw path-segment never round-trips back to the client (the
+     default Spring behaviour would echo the request URI, leaking the
+     attacker-controlled input).
+  4. Logs `malformed_identifier.detected` via `StructuredArguments.kv`
+     (`idHash`, `idLength`) — top-level JSON fields, no raw plaintext.
+}

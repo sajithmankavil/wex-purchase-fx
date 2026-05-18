@@ -1,0 +1,53 @@
+meta {
+  name: 1. Create a purchase
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/purchases
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "description": "Coffee at Logan",
+    "transactionDate": "2025-11-10",
+    "amountUsd": "100.00"
+  }
+}
+
+tests {
+  test("201 Created", function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("id is a UUID v7", function () {
+    expect(res.getBody().id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+
+  test("amountUsd preserves scale-2", function () {
+    expect(res.getBody().amountUsd).to.equal("100.00");
+  });
+}
+
+script:post-response {
+  bru.setVar("purchaseId", res.getBody().id);
+}
+
+docs {
+  Register a USD purchase. Field constraints (validated server-side per the brief):
+
+  - `description`: 1–50 characters; rejected if it contains PAN-shaped content
+    (Luhn / track-data / NFKC encoded-PAN) by the boundary `ContentGuard`.
+  - `transactionDate`: ISO date, ≤ today.
+  - `amountUsd`: positive scale-2 BigDecimal.
+
+  Returns a server-generated UUID v7 id. The post-response script saves the
+  id to the `purchaseId` collection variable for use by the next two requests.
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Error · no rate in window → 422 CONVERSION_RATE_NOT_AVAILABLE
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/purchases/{{purchaseId}}/conversion?currency=Antarctica-Dollar
+  body: none
+  auth: none
+}
+
+params:query {
+  currency: Antarctica-Dollar
+}
+
+tests {
+  test("422 Unprocessable Entity", function () {
+    expect(res.getStatus()).to.equal(422);
+  });
+
+  test("errorCode is CONVERSION_RATE_NOT_AVAILABLE", function () {
+    expect(res.getBody().errorCode).to.equal("CONVERSION_RATE_NOT_AVAILABLE");
+  });
+}
+
+docs {
+  Either the target currency is unknown to Treasury, OR no Treasury rate
+  with `record_date ≤ transactionDate` exists within the prior 6 months.
+  Per the brief: "an error should be returned stating the purchase cannot
+  be converted to the target currency".
+
+  Response is RFC 9457 problem+json; `details` carries the requested
+  currency + the 6-month search window so the caller can reason about
+  why no rate was selected.
+}
