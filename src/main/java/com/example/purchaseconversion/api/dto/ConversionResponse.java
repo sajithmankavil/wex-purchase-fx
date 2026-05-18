@@ -24,13 +24,18 @@ public record ConversionResponse(
         @Schema(description = "Purchase date (UTC).", example = "2026-05-10", format = "date")
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
         LocalDate transactionDate,
+        // All three BigDecimal fields use Shape.STRING so Jackson preserves the
+        // exact textual form (trailing zeros) per AC-014 + api-contracts.md §1.
+        // Without it: 4.50 -> "4.5", 1.370000 -> "1.37" — breaks the contract.
         @Schema(description = "USD amount, scale 2.", example = "123.45", type = "string")
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
         BigDecimal amountUsd,
         @Schema(description = "Canonical Treasury currency descriptor (post-alias-resolution).",
                 example = "Canada-Dollar")
         String targetCurrency,
         @Schema(description = "Treasury exchange rate normalised to scale 6 (G4-P0-3).",
                 example = "1.370000", type = "string", pattern = "^[0-9]+\\.[0-9]{6}$")
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
         BigDecimal exchangeRate,
         @Schema(description = "Treasury record_date associated with the selected rate.",
                 example = "2026-04-15", format = "date")
@@ -38,6 +43,7 @@ public record ConversionResponse(
         LocalDate exchangeRateDate,
         @Schema(description = "Converted amount = amountUsd × exchangeRate, scale 2, HALF_UP.",
                 example = "169.13", type = "string")
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
         BigDecimal convertedAmount) {
 
     public static ConversionResponse of(ConversionResult r) {
