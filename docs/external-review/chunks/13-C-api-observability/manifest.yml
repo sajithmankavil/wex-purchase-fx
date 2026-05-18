@@ -1,17 +1,14 @@
 chunk_id: 13-C-api-observability
-status: summary_posted
+status: under_review   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flip to `accepted` on merge per forward-motion mechanical-transition pattern. Scope of acceptance: M4 + 4 carry-forwards; M5/M6/M7 deferred to pre-staged 13-C2-observability-cicd. All four original review_conditions CLOSED in this PR. New findings (incl. §4.7 NEW MED on MalformedIdentifierException) routed to 13-C2.
 prompt_sha: 9f49a43f0b172161c45ea950533983427ef106d8
-clarification_sha: b7b5dfebd81b303a96cc33893a06924753447517  # 15-clarification.md (1 A2 intake item)
+clarification_sha: b7b5dfebd81b303a96cc33893a06924753447517  # 15-clarification.md (1 A2 intake item — closed by 30-review §2.1)
 summary_sha: aa66be629fe29f0a3d47b839caf9014b619a9c6a
-review_sha: null
+review_sha: 1bbc295c7cfda975eede5507e486766eee05df5d
 pr: 9
 ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26012671199
 deviations_open: []
-review_conditions:
-  - api-layer-currency-input-hashing-on-emit         # carry-over from A2 — see chunks/13-C-api-observability/15-clarification.md
-  - treasury-client-audit-log-on-emit                # carry-over from B2 30-review §2 (MED) — PCI outbound audit on TreasuryClientAdapter
-  - treasury-filter-boundary-whitelist-assertion     # carry-over from B2 30-review §3 (LOW) — defense-in-depth at Treasury filter trust boundary
-  - pitest-conversionservice-per-class-execution     # rolled forward from B1 follow_ups per B2 30-review §8 (with reviewer concurrence); B1 manifest still references for audit trail
-follow_ups: []
-next_chunk: null   # final chunk in Phase 13; after merge, Phase 13 is closed; next phase is 10 (Operational Readiness Gate)
+review_conditions: []   # all four (api-layer-currency-hashing, treasury-audit-log, treasury-filter-whitelist, pitest-conversionservice-per-class) CLOSED in PR #9 per 30-review.md §§2.1-2.4
+follow_ups:
+  - 13-C2-observability-cicd-pre-staged   # absorbs deferred M5/M6/M7 + 8 review-derived conditions (see 30-review.md §§4 + 5)
+next_chunk: 13-C2-observability-cicd   # rewired from `null` per 30-review.md §0 forward-motion decision and §8 merge instructions
 depends_on: [13-B2-treasury-singleflight]   # rewired from 13-B-infrastructure on 2026-05-17 — B was superseded by B1+B2 split (see chunks/13-B-infrastructure/30-review.md)
