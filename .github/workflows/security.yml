@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
   security-events: write
+  # gitleaks-action@v2 enumerates the PR's commits via the GitHub API; needs
+  # pull-requests:read at the workflow level (default GITHUB_TOKEN scope on
+  # PRs from forks is read-only and excludes this — make it explicit).
+  pull-requests: read
 
 jobs:
 
