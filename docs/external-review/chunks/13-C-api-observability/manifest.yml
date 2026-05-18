@@ -4,8 +4,8 @@ prompt_sha: 9f49a43f0b172161c45ea950533983427ef106d8
 clarification_sha: b7b5dfebd81b303a96cc33893a06924753447517  # 15-clarification.md (1 A2 intake item)
 summary_sha: aa66be629fe29f0a3d47b839caf9014b619a9c6a
 review_sha: null
-pr: null
-ci_url: null
+pr: 9
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26012671199
 deviations_open: []
 review_conditions:
   - api-layer-currency-input-hashing-on-emit         # carry-over from A2 — see chunks/13-C-api-observability/15-clarification.md
