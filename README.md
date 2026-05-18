@@ -4,32 +4,31 @@ Java/Spring Boot service for the WEX take-home assessment. Stores USD purchase t
 
 ---
 
-## 0. Tl;dr for assessors
+## 0. Reader paths
 
-**30 seconds.** Three endpoints. Requirements 1 and 2 of the brief are met. **238 unit-test methods** (executing as 271 test cases via parameterised expansion) pass in CI on `mvn test`; 45 Testcontainers integration tests run locally via `mvn verify` (Postgres + WireMock; not in CI — see §6). `mvn spring-boot:run -Dspring-boot.run.profiles=local` boots a self-contained service on H2 — no external database or servlet container required, per the brief.
+Reading time tiers, ordered from shortest to deepest:
 
-**5 minutes.** Read this README §§ 1–4 below + browse [`src/main/java/com/example/purchaseconversion/domain/`](src/main/java/com/example/purchaseconversion/domain/) (pure model, 398 LOC).
-
-**15 minutes.** Read [`AUDIT-BRIEF.md`](AUDIT-BRIEF.md) — single-document tour including the extended enterprise-architecture exercise.
-
-**1 hour.** Full dossier under [`docs/external-review/`](docs/external-review/) — every chunk PR review, the consolidated HITL verdict, the demonstrative production-approval ceremony.
+| Depth | Time | Material |
+|---|---|---|
+| Summary | 30 s | This section. Three endpoints; requirements 1 and 2 of the brief are met. 238 unit-test methods (executing as 271 cases via parameterised expansion) run on `mvn test` in CI; 45 Testcontainers integration tests run locally via `mvn verify` (Postgres + WireMock; not in CI — see §6). `mvn spring-boot:run -Dspring-boot.run.profiles=local` boots a self-contained service on H2 with no external database or servlet container required, per the brief. |
+| Core | 5 min | README §§ 1–4 below; source under [`src/main/java/com/example/purchaseconversion/domain/`](src/main/java/com/example/purchaseconversion/domain/) (398 LOC). |
+| Extended exercise | 15 min | [`AUDIT-BRIEF.md`](AUDIT-BRIEF.md) — single-document tour of the architecture and the operational/security dossier. |
+| Full dossier | 1 h | [`docs/external-review/`](docs/external-review/) — per-chunk PR reviews, consolidated HITL verdict, demonstrative production-approval ceremony. |
 
 ---
 
 ## 0.1 Scope acknowledgement
 
-The brief asks for a 5-business-day take-home: store + retrieve + convert. **The core deliverable that answers the brief** is in:
+The brief specifies a 5-business-day take-home covering store, retrieve, and convert. **The core deliverable** is:
 
 - 3 controllers + 3 DTOs in [`src/main/java/.../api/`](src/main/java/com/example/purchaseconversion/api/)
 - `ConversionService` + 6-month rate-selection in [`src/main/java/.../application/`](src/main/java/com/example/purchaseconversion/application/)
 - Treasury HTTP client + JDBC repos in [`src/main/java/.../infrastructure/`](src/main/java/com/example/purchaseconversion/infrastructure/)
-- ~3,800 production Java LOC, ~5,300 test Java LOC
+- approximately 3,800 production Java LOC and 5,300 test Java LOC
 
-**Everything else** — the 131-doc dossier under [`docs/`](docs/), the 5 cross-cutting directives, the bulk-pass review protocol, the Phase 12 demonstrative ceremony, the PCI DSS v4.0.1 control mapping, the `ContentGuard` rejecting PAN-shaped descriptions — is a **deliberate enterprise-architecture exercise** beyond the brief, included to show how I'd scaffold a real production service if this were a real product.
+**Beyond the brief**, the repository includes a deliberate enterprise-architecture exercise covering the 131-document dossier under [`docs/`](docs/), the five cross-cutting directives, the bulk-pass review protocol, the Phase 12 demonstrative production-approval ceremony, the PCI DSS v4.0.1 control mapping, and the `ContentGuard` rejecting PAN-shaped descriptions. These additions are not required by the brief; the rationale for each is itemised in §5.
 
-I went broad deliberately. If the assessor's interest is just *"does the brief work?"*, read §§ 1–2 and run the three curl commands in §2. If the question is *"how does this person think about production engineering?"*, the dossier is the answer.
-
-**The scope additions and why they're there** are itemised in §5 below.
+For verification against the brief alone, §§ 1–2 and the three `curl` commands in §2 are sufficient. For evaluation of the broader engineering posture, the dossier is the canonical reference.
 
 ---
 
@@ -47,9 +46,9 @@ I went broad deliberately. If the assessor's interest is just *"does the brief w
 
 ---
 
-## 2. Quick demo
+## 2. Local execution
 
-The service ships with embedded **Tomcat** + **H2** (file-mode) so there's nothing to install separately, per the brief.
+The service ships with embedded **Tomcat** and **H2** (file-mode), so no external installation is required, per the brief.
 
 ```bash
 # Build + boot (one terminal). Requires Java 21 + Maven 3.9+.
@@ -82,11 +81,11 @@ curl -s "http://localhost:8080/api/v1/purchases/01992a.../conversion?currency=Ca
 
 **API contract (live, browsable):** when the service is running, Swagger UI at `http://localhost:8080/swagger-ui.html` and raw OpenAPI YAML at `http://localhost:8080/v3/api-docs.yaml`. The committed regression baseline is [`infra/openapi/baseline.yaml`](infra/openapi/baseline.yaml); CI diffs the live spec against it on every PR.
 
-**Drop-in integration artefacts** (consumer-facing, not just docs) — see [`infra/README.md`](infra/README.md) for the full guide:
+**Consumer integration artefacts** — see [`infra/README.md`](infra/README.md) for the full guide:
 
-- **Postman collection** — [`infra/postman/wex-purchase-fx.postman_collection.json`](infra/postman/wex-purchase-fx.postman_collection.json) — one-click import; happy-path + error-case requests with pre-baked test assertions; `newman` CLI compatible.
-- **Bruno collection** (git-friendly modern alternative) — [`infra/bruno/wex-purchase-fx/`](infra/bruno/wex-purchase-fx/) — plain-text `.bru` files that diff cleanly in PRs; no proprietary cloud sync; `bru run` headless mode.
-- **Typed SDK in any language** — generate via `openapi-generator-cli generate -i infra/openapi/baseline.yaml -g <typescript-fetch|java|python|go|rust|...> -o build/clients/<lang>`. Full invocations + per-language notes in [`infra/README.md §3`](infra/README.md).
+- **Postman collection** — [`infra/postman/wex-purchase-fx.postman_collection.json`](infra/postman/wex-purchase-fx.postman_collection.json). Importable into Postman or compatible clients. Includes happy-path and error-case requests with pre-baked test assertions. Compatible with the `newman` CLI for headless execution.
+- **Bruno collection** — [`infra/bruno/wex-purchase-fx/`](infra/bruno/wex-purchase-fx/). Plain-text `.bru` request files version-controlled alongside the API, with no proprietary cloud-sync dependency. Headless execution via `bru run`.
+- **Typed SDKs** — generated via `openapi-generator-cli generate -i infra/openapi/baseline.yaml -g <typescript-fetch|java|python|go|rust|...> -o build/clients/<lang>`. Full invocations and per-language notes in [`infra/README.md §3`](infra/README.md).
 
 ---
 
@@ -143,11 +142,11 @@ CI uploads the JaCoCo + Pitest reports as workflow artefacts on every run — do
 
 ---
 
-## 5. Why the scope additions (each one, briefly)
+## 5. Rationale for scope additions
 
-The brief is silent on these. I added them deliberately; here's why.
+The brief does not require the controls and conventions below. Each is documented with its rationale.
 
-| Addition | Why |
+| Addition | Rationale |
 |---|---|
 | **`ContentGuard` rejecting PAN-shaped descriptions** (Luhn + track-data + NFKC encoded-PAN) | Enterprise-default posture: any free-text field from an untrusted client is a PAN-disclosure risk. Out-of-CDE design only holds if the boundary enforces it under hostile input. |
 | **HMAC-SHA-256 redaction of `description` in logs** | Same as above. Logs are the most common leak vector for PII. `DescriptionHasher` refuses to start in `prod` / `staging` if the key is absent, so the redaction can't silently disappear. |
@@ -196,13 +195,13 @@ Integration tests use **Testcontainers** (spins Postgres 16 in a Docker containe
 | **Integration artefacts** (Postman / Bruno / SDK gen) | [`infra/README.md`](infra/README.md) |
 | **CI workflows** | [`.github/workflows/`](.github/workflows/) (`ci.yml`, `security.yml`, `deploy-*.yml`) |
 
-### Suggested assessor reading order
+### Recommended reading order
 
 1. This README §§ 0 / 0.1 / 1 / 2 (5 min).
-2. Source code under [`src/main/java/.../domain/`](src/main/java/com/example/purchaseconversion/domain/) then `application/conversion/` (10 min — this is where the brief's requirements live).
+2. Source code under [`src/main/java/.../domain/`](src/main/java/com/example/purchaseconversion/domain/) then `application/conversion/` (10 min — implementation of the brief's requirements).
 3. [`AUDIT-BRIEF.md`](AUDIT-BRIEF.md) for the extended-exercise tour (15 min).
 4. [`docs/architecture/adr-0001-core-architecture.md`](docs/architecture/adr-0001-core-architecture.md) for the architectural decisions (10 min).
-5. Tests under [`src/test/java/`](src/test/java/) — start with `ConversionServiceTest` then `EndToEndTreasuryIT`.
+5. Tests under [`src/test/java/`](src/test/java/), beginning with `ConversionServiceTest`, then `EndToEndTreasuryIT`.
 
 ---
 
@@ -241,13 +240,13 @@ Every commit landed via a PR. PRs were reviewed (by reviewer agent in Phase 13; 
 
 Engineering author: **Sajith Mankavil** ([`sajith.mankavil@gmail.com`](mailto:sajith.mankavil@gmail.com)) — architect / product-owner role for the case study.
 
-### 9.1 Honest CI-history note
+### 9.1 CI workflow history disclosure
 
-For most of this project's two-day active window, the CI workflow's "Tests" step was a placeholder shim — `npm test` or `pytest`, neither of which applied to a Java/Maven project. Every "CI green" claim through chunk `13-C3` was therefore **workflow-passed but Java-unrun**. The tests existed and ran locally before each PR; CI was not exercising them.
+For most of the project's two-day active window, the CI workflow's "Tests" step was a placeholder shim invoking `npm test` or `pytest`, neither of which applied to a Java/Maven project. Every "CI green" claim through chunk `13-C3` was therefore **workflow-passed but Java-unrun**. The Java test suites existed and were executed locally before each PR; CI was not exercising them.
 
-PR #17 caught this as the first finding and fixed it: `mvn test` now runs in CI on every PR. The first real run surfaced **12 latent issues** — two real production defects (BigDecimal scale stripped on the wire; PAN-shaped input echoed back via the RFC 9457 `instance` URI), four ApplicationContext-load bugs, three test-correctness issues, two compile errors, and one concurrency-race test fix. Full inventory in [`AUDIT-BRIEF.md §7B`](AUDIT-BRIEF.md). All twelve are fixed; the suite is green.
+PR #17 identified this as its first finding and replaced the shim: `mvn test` now runs in CI on every PR. The first end-to-end CI execution surfaced **12 latent issues** — two production defects (`BigDecimal` scale stripped on the wire; PAN-shaped input echoed back via the RFC 9457 `instance` URI), four `ApplicationContext`-load failures, three test-correctness defects, two compile errors, and one concurrency-race test fix. Full inventory in [`AUDIT-BRIEF.md §7B`](AUDIT-BRIEF.md). All twelve issues have been remediated and the suite passes in CI on `mvn test`.
 
-The lesson belongs in the README so an assessor reads it accurately: the test discipline existed locally, but the CI gating that was supposed to enforce it was broken. The fix is the story, not the bugs.
+Local test discipline existed; the CI gate that should have enforced it was non-operational. This disclosure is included so that readers interpret earlier "CI green" claims in the dossier accordingly.
 
 ---
 
@@ -259,7 +258,7 @@ Underlying frameworks (Spring Boot, Resilience4j, Caffeine, Logstash Logback Enc
 
 ---
 
-## 11. Project journey
+## 11. Phase history
 
 ```
 Phases 1–7   Requirements + design + design-grill + operational-design + reliability-grill + PCI-design + PCI-grill
@@ -279,4 +278,4 @@ HITL gate    docs/external-review/HITL-CONSOLIDATED-REVIEW.md (canonical)
               Verdict: READY FOR CASE-STUDY HITL WITH FINDINGS
 ```
 
-Phase 13 ran *before* Phases 10/11 because the implementation produced the evidence that the readiness gates needed. Phase 12 is the multi-party signature procedure documented in [`docs/security/change-control-pci.md §1`](docs/security/change-control-pci.md); for the case study, it ran demonstratively per the case-study-scope-clarification directive — see [`docs/external-review/phases/12-production-approval/DEMONSTRATIVE-CEREMONY.md`](docs/external-review/phases/12-production-approval/DEMONSTRATIVE-CEREMONY.md). No real production deploy occurred; `deploy-prod.yml` remains correctly marker-gated.
+Phase 13 ran before Phases 10 and 11 because the implementation produced the evidence required to close the readiness gates. Phase 12 is the multi-party signature procedure documented in [`docs/security/change-control-pci.md §1`](docs/security/change-control-pci.md); for the case study it ran demonstratively per the case-study scope-clarification directive — see [`docs/external-review/phases/12-production-approval/DEMONSTRATIVE-CEREMONY.md`](docs/external-review/phases/12-production-approval/DEMONSTRATIVE-CEREMONY.md). No production deployment has occurred; `deploy-prod.yml` remains marker-gated.

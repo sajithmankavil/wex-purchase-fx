@@ -247,15 +247,15 @@ The case-study scope directive (`docs/external-review/directives/2026-05-18-case
 
 From `HITL-CONSOLIDATED-REVIEW.md §7.3`:
 
-1. **F-15 Idempotency-Key (BLOCKING-for-prod)** — preserved as a documented gap rather than speculatively implemented. Demonstrates judgment over feature-completeness. The implementation pattern is documented; the deferral was the case-study-correct call.
+1. **F-15 Idempotency-Key (BLOCKING-for-prod)** — preserved as a documented gap. The implementation pattern is specified; the deferral is consistent with case-study scope.
 
-2. **Req 8 identity origin (BLOCKING-for-prod)** — gateway-bound; implementation pattern documented (`access-control-pci.md`); execution Phase-12-equivalent. Demonstrative consensus across SRE / Security / Compliance: option (c) explicit BLOCKING-for-real-prod.
+2. **Req 8 identity origin (BLOCKING-for-prod)** — gateway-bound; implementation pattern documented (`access-control-pci.md`); execution is Phase-12-equivalent. Demonstrative consensus across SRE, Security, and Compliance: option (c) explicit BLOCKING-for-real-prod.
 
-3. **F1 security-workflow gating** — advisory today; flip procedure documented (baseline scan + triage + flip + validate). Not speculatively flipped pre-cutover to avoid blocking PRs on unknown CVE baseline.
+3. **F1 security-workflow gating** — advisory in the current configuration. Flip procedure is documented (baseline scan, triage, flip, validate). The flip has not been performed pre-cutover to avoid blocking PRs against an unknown CVE baseline.
 
-4. **`incident-response-pci.md` 27-line stub** — operational `incident-response.md` is substantive (~210 LOC); PCI-specific diff (50-80 LOC) deferred to real-deploy tabletop prep.
+4. **`incident-response-pci.md` 27-line stub** — the operational `incident-response.md` is substantive (~210 LOC); the PCI-specific diff (50–80 LOC) is deferred to real-deployment tabletop preparation.
 
-5. **HITL-gate consolidation directive activation** — first canonical use; dev-authored provisional verdicts ratified by reviewer's consolidated pass. For real-deployment QSA, supplementary per-phase change-control evidence would be requested.
+5. **HITL-gate consolidation directive activation** — first canonical use. Developer-authored provisional verdicts are ratified by the reviewer's consolidated pass. For real-deployment QSA evaluation, supplementary per-phase change-control evidence is expected.
 
 ---
 
@@ -285,11 +285,11 @@ Nine Phase-13 chunk dossiers each include a reviewer-authored `30-review.md` (~2
 
 ---
 
-## 7B. Honest CI history (mandatory disclosure)
+## 7B. CI workflow history disclosure
 
-**Through Phases 13 + 10 + 11 + 12, the CI workflow's "Tests" step was a placeholder shim that only ran `npm test` or `pytest` — neither applied to a Java/Maven project.** Every chunk reviewer-`30-review.md` claim of "CI green" was workflow-passed-but-Java-unrun. Tests existed and were run locally before each PR; CI was not exercising them.
+**Through Phases 13, 10, 11, and 12, the CI workflow's "Tests" step was a placeholder shim invoking `npm test` or `pytest` — neither applied to a Java/Maven project.** Every chunk-reviewer `30-review.md` claim of "CI green" through that period was workflow-passed but Java-unrun. The Java test suites existed and were executed locally before each PR; CI was not exercising them.
 
-The external-assessor pass on `chore/assessor-feedback-pass` (PR #17) caught this as the very first finding and fixed it: `mvn test` now runs in CI on every PR. The first real CI run surfaced **12 latent issues**, all fixed in the same PR:
+The external-assessor pass on `chore/assessor-feedback-pass` (PR #17) identified this as its first finding and replaced the shim: `mvn test` now runs in CI on every PR. The first end-to-end CI execution surfaced **12 latent issues**, all remediated in the same PR:
 
 | # | Bug | Class |
 |---|---|---|
@@ -306,14 +306,15 @@ The external-assessor pass on `chore/assessor-feedback-pass` (PR #17) caught thi
 | 11 | `PurchaseResponse.amountUsd` + `ConversionResponse.{amountUsd, exchangeRate, convertedAmount}` — BigDecimal serialised in canonical form, **stripping trailing zeros** (`4.50 → 4.5`, `1.370000 → 1.37`). Violates AC-014 + api-contracts.md §1 (real production bug) | API contract violation |
 | 12 | `ProblemDetail.instance` echoed the request URI containing the raw malformed input (e.g., `4242424242424242`). C 30-review §4.7 closure had redacted `details.id` but missed this field (real PII-leak path) | Security: PII leak |
 
-**Severity of the bugs above**: 11 of 12 were silent — would have shipped to production without detection. #11 (BigDecimal scale) and #12 (PII via `instance` URI) are real production correctness/security defects, not just test bugs.
+**Severity classification**: 11 of 12 issues were silent and would have reached production undetected. Items #11 (BigDecimal scale stripped on the wire) and #12 (PII via the RFC 9457 `instance` URI) are production correctness and security defects respectively, not test-only defects.
 
-**What this story says about the project**:
-- The test suite was substantive (238 unit-test methods executing as 271 Surefire cases + 45 Failsafe ITs) and the developer ran it locally before each PR — that's why most of the implementation is correct.
-- But the dossier overclaimed "CI green" — the workflow was passing for trivial reasons, not because it had verified Java code. The reviewer agent's per-chunk `30-review.md` files and the consolidated HITL review all granted "ACCEPTED" verdicts based on this incomplete signal.
-- The honest framing for the assessor: **the test discipline existed locally; the CI gating was broken**. The external-assessor pass fixed the gating, and 12 latent bugs surfaced and were fixed. The verdict on the dossier's earlier claims should be re-weighted accordingly.
+**Implications**:
 
-This addendum is mandatory disclosure for shareable. The original `30-review.md` files remain immutable per the dossier convention (audit trail); this section is the canonical correction.
+- The test suite is substantive (238 unit-test methods executing as 271 Surefire cases, plus 45 Failsafe integration tests) and was executed locally before each PR; this accounts for the correctness of the bulk of the implementation.
+- The dossier nevertheless overstated "CI green" through chunk `13-C3`. The workflow passed because the test step was non-operational, not because the Java suite had been verified by CI. The per-chunk `30-review.md` files and the consolidated HITL review granted ACCEPTED verdicts on the basis of this incomplete signal.
+- Local test discipline existed; the CI gate that should have enforced it was non-operational. The external-assessor pass installed the gate, and the 12 latent issues surfaced and were remediated. Earlier dossier claims of "CI green" should be interpreted in light of this disclosure.
+
+This section is the canonical correction. The original per-chunk `30-review.md` files remain immutable per the dossier convention (audit trail integrity).
 
 ---
 
