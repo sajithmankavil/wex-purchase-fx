@@ -2,7 +2,7 @@
 
 **Project:** Currency-converted purchase-transaction service for the WEX assessment.
 **Posture:** Case-study terminal; production-deployable (architecture, code, tests, ops, security all assessor-ready). No real production deployment will occur; the production-cutover punch list is documented and would be executed under real-deployment activation.
-**Date:** 2026-05-18 — `main` HEAD `d9cc80f`.
+**Date:** 2026-05-18 — `main` HEAD `f16ad62` (this brief originally landed on `d9cc80f`; refreshed after the cleanup PR #16 + `AUDIT-BRIEF.md` commit + the project-specific `README.md` rewrite).
 **Audience:** External auditor / assessor.
 **Deep-dive index:** `docs/external-review/STATUS.md` is the rollup; `docs/external-review/HITL-CONSOLIDATED-REVIEW.md` is the canonical reviewer verdict.
 
@@ -179,10 +179,11 @@ Domain depends on nothing. Application depends only on domain + ports. Infrastru
 | **ArchUnit fitness functions** | Hexagonal-layer dependency rules + naming conventions | Pass on every CI run. |
 | **CI workflows** | 5 (`ci.yml`, `security.yml`, `deploy-{dev,staging,prod}.yml`) | Security workflow has 5 jobs (gitleaks / semgrep / owasp-dc / trivy / sbom). Deploy-prod is marker-gated. |
 | **OpenAPI** | OAS 3.1 baseline at `infra/openapi/baseline.yaml` | 11 error codes enumerated; AC-014 scale-6 example on the wire; Spectral lints; oasdiff guards. |
-| **Phase 13 chunks** | 9 (PRE-bootstrap, PRE-readiness-check-fix, A1, A2, B1, B2, C, C2, C3) | Each closed with a reviewer-authored `30-review.md`. PR #2–#11. |
-| **Total merged PRs** | 12 (chunks + hygiene + dossier flips) | Audit trail in STATUS.md ledger. |
-| **Phases** | 13 → 10 → 11 → 12 demonstrative | All four closed; HITL consolidated review canonical. |
-| **Cross-cutting directives** | 4 in force | forward-motion-bias (2026-05-17), ops/pci-check strict-flip (2026-05-17), HITL-gate consolidation (2026-05-18), case-study scope clarification (2026-05-18). |
+| **Phase 13 chunks** | 9 accepted + 1 superseded (B → B1+B2) | Each closed with a reviewer-authored `30-review.md`. PR #2–#11. |
+| **Total commits on `main`** | **36** | Two-day active window (2026-05-17 → 2026-05-18). |
+| **Total merged PRs** | **15** | 11 Phase-13 chunk PRs (#2–#11) + #12 (C2/C3 manifest flips) + #13 (Phase 10) + #14 (Phase 11) + #15 (HITL-READY) + #16 (tests/ cleanup). Audit trail in STATUS.md ledger. |
+| **Phases** | 13 → 10 → 11 → 12 demonstrative | All four closed; HITL consolidated review canonical (`READY FOR CASE-STUDY HITL WITH FINDINGS`). |
+| **Cross-cutting directives** | 5 in force | forward-motion-bias (2026-05-17), ops/pci-check strict-flip (2026-05-17), phase-10-11 bulk-pass protocol (2026-05-18), HITL-gate consolidation (2026-05-18), case-study scope clarification (2026-05-18). |
 | **LOC discipline** | 1,500 soft / 1,800 hard cap per chunk | Two one-time concessions (B1 +2,743; C +250) with reviewer-documented rationale. C2 + C3 honoured the cap from the start. |
 
 ---
