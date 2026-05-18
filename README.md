@@ -80,7 +80,13 @@ curl -s "http://localhost:8080/api/v1/purchases/01992a.../conversion?currency=Ca
 #   }
 ```
 
-**API contract (live, browsable):** when the service is running, swagger UI at `http://localhost:8080/swagger-ui.html` and raw OpenAPI YAML at `http://localhost:8080/v3/api-docs.yaml`. The committed regression baseline is [`infra/openapi/baseline.yaml`](infra/openapi/baseline.yaml); CI diffs the live spec against it on every PR.
+**API contract (live, browsable):** when the service is running, Swagger UI at `http://localhost:8080/swagger-ui.html` and raw OpenAPI YAML at `http://localhost:8080/v3/api-docs.yaml`. The committed regression baseline is [`infra/openapi/baseline.yaml`](infra/openapi/baseline.yaml); CI diffs the live spec against it on every PR.
+
+**Drop-in integration artefacts** (consumer-facing, not just docs) — see [`infra/README.md`](infra/README.md) for the full guide:
+
+- **Postman collection** — [`infra/postman/wex-purchase-fx.postman_collection.json`](infra/postman/wex-purchase-fx.postman_collection.json) — one-click import; happy-path + error-case requests with pre-baked test assertions; `newman` CLI compatible.
+- **Bruno collection** (git-friendly modern alternative) — [`infra/bruno/wex-purchase-fx/`](infra/bruno/wex-purchase-fx/) — plain-text `.bru` files that diff cleanly in PRs; no proprietary cloud sync; `bru run` headless mode.
+- **Typed SDK in any language** — generate via `openapi-generator-cli generate -i infra/openapi/baseline.yaml -g <typescript-fetch|java|python|go|rust|...> -o build/clients/<lang>`. Full invocations + per-language notes in [`infra/README.md §3`](infra/README.md).
 
 ---
 
@@ -186,6 +192,7 @@ Integration tests use **Testcontainers** (spins Postgres 16 in a Docker containe
 | **Operations** | [`docs/operations/`](docs/operations/) — 12 files: SLO/SLI, observability, runbook (25 playbooks), incident-response, rollback-plan (6 classes), capacity, failure-modes (F-01..F-27) |
 | **PCI scope + control mapping** | [`docs/security/pci-scope-and-cde.md`](docs/security/pci-scope-and-cde.md), [`docs/security/pci-dss-control-mapping.md`](docs/security/pci-dss-control-mapping.md) |
 | **OpenAPI baseline** | [`infra/openapi/baseline.yaml`](infra/openapi/baseline.yaml) |
+| **Integration artefacts** (Postman / Bruno / SDK gen) | [`infra/README.md`](infra/README.md) |
 | **CI workflows** | [`.github/workflows/`](.github/workflows/) (`ci.yml`, `security.yml`, `deploy-*.yml`) |
 
 ### Suggested assessor reading order

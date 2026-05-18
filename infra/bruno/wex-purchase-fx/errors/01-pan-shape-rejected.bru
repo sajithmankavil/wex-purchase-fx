@@ -1,0 +1,46 @@
+meta {
+  name: Error · description with PAN shape → 400 PAN_PATTERN_DETECTED
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/purchases
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "description": "4242424242424242 thanks",
+    "transactionDate": "2025-11-10",
+    "amountUsd": "100.00"
+  }
+}
+
+tests {
+  test("400 Bad Request", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("errorCode is PAN_PATTERN_DETECTED", function () {
+    expect(res.getBody().errorCode).to.equal("PAN_PATTERN_DETECTED");
+  });
+
+  test("response does NOT echo the raw PAN substring", function () {
+    expect(JSON.stringify(res.getBody())).not.to.contain("4242424242424242");
+  });
+}
+
+docs {
+  Boundary `ContentGuard` rejects descriptions containing PAN-shaped
+  substrings. The check is Luhn-valid digit sequence + track-data prefix
+  + NFKC-normalised encoded-PAN (catches fullwidth-confusable digit
+  smuggling). Response is RFC 9457 problem+json; `details.reason` carries
+  one of `luhn` / `track1` / `track2` / `luhn-encoded`. No raw payload
+  echo anywhere (this is the production PCI boundary control).
+}

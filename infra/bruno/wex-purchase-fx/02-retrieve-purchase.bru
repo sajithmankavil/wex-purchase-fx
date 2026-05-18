@@ -1,0 +1,35 @@
+meta {
+  name: 2. Retrieve the purchase
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/purchases/{{purchaseId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("200 OK", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("echoes stored description", function () {
+    expect(res.getBody().description).to.equal("Coffee at Logan");
+  });
+
+  test("amountUsd preserves scale-2", function () {
+    expect(res.getBody().amountUsd).to.equal("100.00");
+  });
+}
+
+docs {
+  Retrieve a stored purchase by id. Returns:
+
+  - 200 with the stored purchase representation (same shape as the create
+    response).
+  - 404 `PURCHASE_NOT_FOUND` (RFC 9457 problem+json) for any unknown UUID v7.
+  - 400 `MALFORMED_IDENTIFIER` for non-UUID-v7 input; the raw input is
+    HMAC-SHA-256-hashed in both the response body and any logs.
+}

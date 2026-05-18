@@ -1,0 +1,142 @@
+{
+  "info": {
+    "_postman_id": "9b1c3f80-1111-4444-8888-d5fda0b00000",
+    "name": "WEX Purchase FX",
+    "description": "USD purchases + Treasury-rate currency conversion service. Three endpoints; RFC 9457 errors; scale-6 exchange rate / scale-2 HALF_UP converted amount.\n\nImport into Postman, Insomnia, or VS Code REST Client. Start the service locally with `mvn spring-boot:run -Dspring-boot.run.profiles=local`. The default `{{baseUrl}}` is `http://localhost:8080`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "wex-purchase-fx"
+  },
+  "item": [
+    {
+      "name": "1. Create a purchase (POST /api/v1/purchases)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('id is a UUID v7', () => pm.expect(body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/));",
+              "pm.test('amountUsd preserves scale-2', () => pm.expect(body.amountUsd).to.equal('100.00'));",
+              "pm.collectionVariables.set('purchaseId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Coffee at Logan\",\n  \"transactionDate\": \"2025-11-10\",\n  \"amountUsd\": \"100.00\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/purchases", "host": ["{{baseUrl}}"], "path": ["api", "v1", "purchases"] },
+        "description": "Register a USD purchase. Field constraints (validated server-side per the brief):\n- `description`: 1–50 characters; rejected if it contains PAN-shaped content (Luhn / track-data / NFKC encoded-PAN)\n- `transactionDate`: ISO date, ≤ today\n- `amountUsd`: positive scale-2 BigDecimal\n\nReturns the server-generated UUID v7 id. The test script extracts the id into `{{purchaseId}}` for the next two requests."
+      }
+    },
+    {
+      "name": "2. Retrieve the purchase (GET /api/v1/purchases/{id})",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('echoes stored description', () => pm.expect(body.description).to.equal('Coffee at Logan'));",
+              "pm.test('amountUsd preserves scale-2', () => pm.expect(body.amountUsd).to.equal('100.00'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/purchases/{{purchaseId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "purchases", "{{purchaseId}}"]
+        },
+        "description": "Retrieve a stored purchase by id. Returns 404 `PURCHASE_NOT_FOUND` (RFC 9457) for any unknown UUID v7; 400 `MALFORMED_IDENTIFIER` (with the raw input HMAC-hashed in the response body and in logs) for non-UUID-v7 input."
+      }
+    },
+    {
+      "name": "3. Convert to a target currency (GET /api/v1/purchases/{id}/conversion)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('exchangeRate is scale-6 string', () => pm.expect(body.exchangeRate).to.match(/^[0-9]+\\.[0-9]{6}$/));",
+              "pm.test('convertedAmount is scale-2 string', () => pm.expect(body.convertedAmount).to.match(/^-?[0-9]+\\.[0-9]{2}$/));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/purchases/{{purchaseId}}/conversion?currency=Canada-Dollar",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "purchases", "{{purchaseId}}", "conversion"],
+          "query": [{ "key": "currency", "value": "Canada-Dollar", "description": "Treasury canonical currency descriptor; aliases (e.g., CAD) are resolved server-side." }]
+        },
+        "description": "Convert the stored amount using the most recent Treasury exchange rate with `record_date ≤ transactionDate` AND `transactionDate − record_date ≤ 6 months` (the brief's 6-month rule; ADR-0001 D-5 EOM clamp).\n\nReturns 422 `CONVERSION_RATE_NOT_AVAILABLE` if no eligible rate exists in window (matching the brief's \"error stating purchase cannot be converted\").\n\nResponse fields:\n- `exchangeRate`: scale-6 string (`\"1.370000\"`)\n- `convertedAmount`: scale-2 HALF_UP string (`\"137.00\"`)\n- `exchangeRateDate`: Treasury record_date that was selected"
+      }
+    },
+    {
+      "name": "Error · description with PAN-shape (POST → 400 PAN_PATTERN_DETECTED)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"4242424242424242 thanks\",\n  \"transactionDate\": \"2025-11-10\",\n  \"amountUsd\": \"100.00\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/purchases", "host": ["{{baseUrl}}"], "path": ["api", "v1", "purchases"] },
+        "description": "Boundary `ContentGuard` rejects descriptions with PAN-shaped substrings (Luhn-valid + track-data + NFKC encoded-PAN). Response is RFC 9457 problem+json with `errorCode=PAN_PATTERN_DETECTED`, `details.reason ∈ {luhn,track1,track2,luhn-encoded}`, and **no raw payload echo**."
+      }
+    },
+    {
+      "name": "Error · malformed id (GET → 400 MALFORMED_IDENTIFIER, hashed)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/purchases/4242424242424242",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "purchases", "4242424242424242"]
+        },
+        "description": "Path-segment is not a valid UUID v7. Response is RFC 9457 problem+json with `errorCode=MALFORMED_IDENTIFIER`. The raw input is HMAC-SHA-256-hashed (no plain echo in logs or the response body); `details.id.hash` carries the `vN:` prefix + 64-hex digest; `details.id.length` is the input character count. The `instance` URI is redacted to `/api/v1/purchases/redacted` so the raw value never round-trips."
+      }
+    },
+    {
+      "name": "Error · no rate in window (GET → 422 CONVERSION_RATE_NOT_AVAILABLE)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/purchases/{{purchaseId}}/conversion?currency=Antarctica-Dollar",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "purchases", "{{purchaseId}}", "conversion"],
+          "query": [{ "key": "currency", "value": "Antarctica-Dollar" }]
+        },
+        "description": "Target currency unknown OR no Treasury rate published with `record_date ≤ transactionDate` within the prior 6 months. Response is RFC 9457 problem+json with `errorCode=CONVERSION_RATE_NOT_AVAILABLE`; `details` carries the requested currency + the 6-month search window."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "description": "Local-profile service URL. Override per-environment for staging / prod."
+    },
+    { "key": "purchaseId", "value": "", "description": "Populated by the create-purchase test script." }
+  ]
+}

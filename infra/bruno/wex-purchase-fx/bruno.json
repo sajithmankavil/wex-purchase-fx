@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "wex-purchase-fx",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}
