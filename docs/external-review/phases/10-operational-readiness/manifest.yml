@@ -1,10 +1,12 @@
 phase_id: 10-operational-readiness
-status: bundle_posted   # 2026-05-18 — 20-bundle.md written; coverage map covers all 12 source docs + 3 Phase-13 carry-forwards; 5 BLOCKER rows surfaced for reviewer adjudication (all are production-runtime artifacts deferring to Phase 12); 5 Open Questions for reviewer in 20-bundle.md §4. Dev pre-staged 00-prompt.md (forward-motion-bias bend; reviewer may amend via 25-prompt-revision.md if desired).
-prompt_sha: null              # set by `git hash-object 00-prompt.md` once committed
-bundle_sha: null              # set by `git hash-object 20-bundle.md` once committed
-review_sha: null
-pr: null
-ci_url: null
+status: under_review   # 2026-05-18 — reviewer 30-review.md authored at e5a202d; verdict ACCEPTED WITH CONDITIONS. Awaits implementer PR open + CI green + merge for mechanical transition under_review → accepted. On accepted, reviewer next tick pre-stages phases/11-pci-security-readiness/{00-prompt.md, manifest.yml} per directive §6.
+prompt_sha: ea7a89a9e939f83607281c20d0297ab79d6a1a97
+bundle_sha: 09abe35543be9b58ab8791c578066e29e8b2a366    # will change after F-LOW-1/2 hygiene fixes land in this commit; reviewer is welcome to update on next tick.
+review_sha: 3704eb029d6d5936b89e55a54d1df79e2f329be8
+review_verdict: ACCEPTED_WITH_CONDITIONS
+review_date: 2026-05-18
+pr: 13
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26017466394   # green run on initial bundle_posted (HEAD e5a202d); will re-run after hygiene commit lands
 
 # Source documents in scope per 00-prompt.md §2. Every requirement across these
 # files must have a coverage-map row in 20-bundle.md.
@@ -22,17 +24,40 @@ source_docs:
   - docs/operations/runbook.md
   - docs/operations/operational-readiness-gate.md
 
-# Carry-forward review_conditions routed in from Phase 13 chunk reviews.
+# Carry-forward review_conditions routed in from Phase 13 chunk reviews —
+# disposition recorded by Phase 10 30-review.md §2 + §4:
+#   - oasdiff-vs-live-oas-pending-mvn                          → Phase 11 (paired with M7 Maven-runner provisioning)
+#   - rate-revision-end-to-end-it-cache-invalidation-variant   → DROPPED with rationale (lower-layer invariants already proven)
+#   - malformed-identifier-exception-message-redaction         → Phase 11 (defense-in-depth; phase-boundary discipline)
+intake_review_conditions:
+  - oasdiff-vs-live-oas-pending-mvn                          # routed to Phase 11
+  - rate-revision-end-to-end-it-cache-invalidation-variant   # DROPPED at this phase
+  - malformed-identifier-exception-message-redaction         # routed to Phase 11
+
+# Phase 10 30-review.md conditions (forward-routed; none pre-merge-blocking).
 review_conditions:
-  - oasdiff-vs-live-oas-pending-mvn                          # C3 30-review §F2 part 2 — MED; M7-paired
-  - rate-revision-end-to-end-it-cache-invalidation-variant   # C3 30-review §F4 — LOW (optional enhancement)
-  - malformed-identifier-exception-message-redaction         # C3 30-review §F5 — LOW (defense-in-depth)
+  # Phase 11 (PCI Security Readiness) bundle carry-forwards:
+  - malformed-identifier-exception-message-redaction         # C2 LOW — drop raw input from getMessage()
+  - oasdiff-vs-live-oas-pending-mvn                          # C3 MED — activate live-vs-baseline diff once M7 lands
+  - audit-log-destination-provisioning                       # C4 MED — failure-modes F-24 sink choice + retention + integrity
+  # Phase 12 (Production Approval) hand-off:
+  - idempotency-key-blocking-for-prod                        # C1 HIGH — preserve BLOCKING-for-prod flag; human-signatory adjudication
+  - load-test-execution-against-capacity-anchors             # C5 MED — k6 + WireMock-Treasury staging
+  - cb-calibration-drill-log                                 # C6 MED — staging drill against docs/operations/drills/TEMPLATE-drill.md
+  - class-a-rollback-rehearsal-log                           # C7 MED — staging rehearsal
+  - class-b-rollback-rehearsal-log                           # C8 LOW — staging rehearsal
+  - first-quarterly-tabletop-drill-log                       # C9 LOW — incident-response §5 cadence first execution
+  - pagerduty-integration-provisioned                        # C10 MED — platform-team task
+  - oncall-rotation-real-names-populated                     # C11 LOW — prod-cutover fill-in
+  # Doc-hygiene (any dossier touchpoint):
+  - bundle-artifact-link-cosmetics                           # C13 LOW — F-LOW-1
+  - content-guard-test-nested-naming-drift                   # C14 LOW — F-LOW-2
 
-# Carry-forwards from C2 30-review §4.5 partial closure (Treasury audit migrated;
-# ProblemDetailExceptionHandler migrated in C3 hygiene). Treated as already CLOSED
-# at C3 merge — preserved here for audit trail only.
+# Conditions dropped with rationale (no forward routing).
+review_conditions_dropped:
+  - rate-revision-end-to-end-it-cache-invalidation-variant   # B1 persistence + B1/B2 hot-cache contract already prove the invariant
 
-follow_ups: []                # populated by reviewer 30-review.md if ACCEPTED WITH CONDITIONS
+follow_ups: []                # closed via review_conditions matrix above
 
 depends_on: [13-C2-observability-cicd, 13-C3-openapi-cicd]
 depends_on_satisfied: true    # both chunks merged 2026-05-18
