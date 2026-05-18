@@ -1,5 +1,5 @@
 chunk_id: 13-B1-persistence-cache
-status: under_review   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flip to `accepted` on merge per forward-motion mechanical-transition pattern
+status: accepted   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flipped from under_review on merge (d96e08b) per forward-motion mechanical-transition pattern; 1 follow_up tracked below
 prompt_sha: 87bc26e8bb31f6f4ecc95ff6b7277d04bb86c166
 summary_sha: e9c723524e87b9766ef91fae3aab25a9fd4f6b9c
 review_sha: b3fba20066ef797ce6b8bd432e9f569fc4d87dac

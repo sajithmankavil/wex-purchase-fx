@@ -14,10 +14,13 @@ import com.example.purchaseconversion.application.purchase.PurchaseService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.web.client.RestClient;
 
 import javax.sql.DataSource;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 
@@ -27,11 +30,10 @@ import java.time.ZoneOffset;
  * <p>This keeps application/* free of Spring annotations (ArchUnit-enforced by
  * {@code noSpringStereotypesInApplication} from A2). All bean wiring is here.
  *
- * <p>Note: a stub {@link TreasuryClientPort} is wired by {@link StubTreasuryClient}
- * for B1 (no real upstream HTTP yet). B2 replaces it with the live
- * {@code TreasuryClientAdapter}. The stub returns an empty list — the
- * conversion flow's "after Treasury fetch + DB re-read" branch ends in a
- * {@code ConversionRateNotAvailableException} when local rates are exhausted.
+ * <p>The B1 stub TreasuryClientPort is removed in B2 — the live
+ * {@code TreasuryClientAdapter} is now component-scanned. RestClient.Builder
+ * is exposed here with a sane request-factory timeout so the adapter does not
+ * need to construct one inline.
  */
 @Configuration
 public class WexConfig {
@@ -80,12 +82,17 @@ public class WexConfig {
     }
 
     /**
-     * B1 placeholder: returns empty list. B2 replaces this with the
-     * Resilience4j-wrapped TreasuryClientAdapter.
+     * RestClient.Builder with a basic timeout request factory. The
+     * Resilience4j @TimeLimiter is not applied at the adapter level (the
+     * adapter is synchronous); per-call timeouts come from the request factory
+     * configured here. Treasury timeout budget: 2 s connect + 2 s read.
      */
     @Bean
-    public TreasuryClientPort treasuryClientPort() {
-        return new StubTreasuryClient();
+    public RestClient.Builder restClientBuilder() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) Duration.ofSeconds(2).toMillis());
+        factory.setReadTimeout((int) Duration.ofSeconds(2).toMillis());
+        return RestClient.builder().requestFactory(factory);
     }
 
     private static final class SystemClockPort implements ClockPort {
@@ -98,16 +105,6 @@ public class WexConfig {
         @Override
         public LocalDate today() {
             return LocalDate.now(clock.withZone(ZoneOffset.UTC));
-        }
-    }
-
-    private static final class StubTreasuryClient implements TreasuryClientPort {
-        @Override
-        public java.util.List<com.example.purchaseconversion.domain.ExchangeRate> fetchRates(
-                com.example.purchaseconversion.domain.CurrencyDescriptor currency,
-                LocalDate windowLower,
-                LocalDate windowUpper) {
-            return java.util.List.of();
         }
     }
 }
