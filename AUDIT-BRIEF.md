@@ -285,6 +285,38 @@ Nine Phase-13 chunk dossiers each include a reviewer-authored `30-review.md` (~2
 
 ---
 
+## 7B. Honest CI history (mandatory disclosure)
+
+**Through Phases 13 + 10 + 11 + 12, the CI workflow's "Tests" step was a placeholder shim that only ran `npm test` or `pytest` — neither applied to a Java/Maven project.** Every chunk reviewer-`30-review.md` claim of "CI green" was workflow-passed-but-Java-unrun. Tests existed and were run locally before each PR; CI was not exercising them.
+
+The external-assessor pass on `chore/assessor-feedback-pass` (PR #17) caught this as the very first finding and fixed it: `mvn test` now runs in CI on every PR. The first real CI run surfaced **12 latent issues**, all fixed in the same PR:
+
+| # | Bug | Class |
+|---|---|---|
+| 1 | `WinnerOutcome` record-component accessor name colliding with static factory | Compile error |
+| 2 | `@MockitoBean` (Spring Boot 3.4+) used on a 3.3.5 project; should be `@MockBean` | Compile error |
+| 3 | `@WebMvcTest` slice missing `addFilters=false` + `@MockBean RateLimiterRegistry` — slice scan picked up `WexRateLimiterFilter` and couldn't satisfy its dependency | ApplicationContext load |
+| 4 | `ProblemDetailExceptionHandler` had two public constructors; no `@Autowired` on either → Spring "no default constructor" | ApplicationContext load |
+| 5 | `ProblemDetailExceptionHandler` constructor required `MetricsCatalog`; WebMvcTest slice doesn't load `observability` package | ApplicationContext load |
+| 6 | `WexConfig` declared three `@Bean @Primary` aliases of `PurchaseService` → `NoUniqueBeanDefinitionException` | ApplicationContext load |
+| 7 | `LoggingPiiGuardTest` read `event.getFormattedMessage()` after C3-hygiene migrated emissions to `StructuredArguments.kv` — those live on the argument array, not in the formatted message | Assertion failure |
+| 8 | `@ParameterizedTest(name = "{0}")` produced a blank displayName for an empty-string value — JUnit 5 rejects with `PreconditionViolationException` | Test framework error |
+| 9 | `DbPoolHeadroomHealthIndicatorTest.recoveryResetsWindow` advanced the clock only 1100 ms but its threshold was 5000 ms — math bug; test stayed UP when it expected DOWN | Test assertion bug |
+| 10 | `SingleFlightGateTest` (both twoLosersOneWinner + loserMirrorsWinnerFailure) raced — `Thread.sleep(50)` between submitting winner and losers wasn't enough on slow CI runners; losers became winners | Test concurrency race |
+| 11 | `PurchaseResponse.amountUsd` + `ConversionResponse.{amountUsd, exchangeRate, convertedAmount}` — BigDecimal serialised in canonical form, **stripping trailing zeros** (`4.50 → 4.5`, `1.370000 → 1.37`). Violates AC-014 + api-contracts.md §1 (real production bug) | API contract violation |
+| 12 | `ProblemDetail.instance` echoed the request URI containing the raw malformed input (e.g., `4242424242424242`). C 30-review §4.7 closure had redacted `details.id` but missed this field (real PII-leak path) | Security: PII leak |
+
+**Severity of the bugs above**: 11 of 12 were silent — would have shipped to production without detection. #11 (BigDecimal scale) and #12 (PII via `instance` URI) are real production correctness/security defects, not just test bugs.
+
+**What this story says about the project**:
+- The test suite was substantive (271 unit tests + 45 ITs) and the developer ran it locally before each PR — that's why most of the implementation is correct.
+- But the dossier overclaimed "CI green" — the workflow was passing for trivial reasons, not because it had verified Java code. The reviewer agent's per-chunk `30-review.md` files and the consolidated HITL review all granted "ACCEPTED" verdicts based on this incomplete signal.
+- The honest framing for the assessor: **the test discipline existed locally; the CI gating was broken**. The external-assessor pass fixed the gating, and 12 latent bugs surfaced and were fixed. The verdict on the dossier's earlier claims should be re-weighted accordingly.
+
+This addendum is mandatory disclosure for shareable. The original `30-review.md` files remain immutable per the dossier convention (audit trail); this section is the canonical correction.
+
+---
+
 ## 8. Where to deep-dive
 
 | Topic | File |
