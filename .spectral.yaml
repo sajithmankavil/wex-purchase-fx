@@ -10,13 +10,12 @@ extends:
   - "spectral:oas"
 
 rules:
-  # Operation-level basics (from spectral:oas, made explicit + raised to error)
-  operation-operationId:
-    severity: error
-  operation-description:
-    severity: error
-  operation-tag-defined:
-    severity: error
+  # Operation-level basics (inherited from spectral:oas). The Spectral severity-
+  # only override form is `<rule-name>: <severity>` — the longer `{severity: ...}`
+  # form is treated as a fresh rule definition and requires `given` + `then`.
+  operation-operationId: error
+  operation-description: error
+  operation-tag-defined: error
 
   # RFC 9457 conformance — every 4xx/5xx must use application/problem+json
   wex-error-responses-must-use-problem-json:
