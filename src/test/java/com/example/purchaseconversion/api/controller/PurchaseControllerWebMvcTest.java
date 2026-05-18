@@ -23,6 +23,7 @@ import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -61,11 +62,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * production wiring (sans the rate-limit filter, which is exercised by
  * RateLimitOrderingIT in the integration test path).
  */
-// addFilters=false disables Spring's filter chain in the slice; without it, the
-// component-scanned WexRateLimiterFilter pulls in a RateLimiterRegistry dependency
-// the WebMvcTest slice doesn't provide. The filter's behaviour is covered by
-// WexRateLimiterFilterTest separately; this slice is for controller + advice tests.
-@WebMvcTest(controllers = PurchaseController.class, addFilters = false)
+// AutoConfigureMockMvc(addFilters=false) disables Spring's filter chain in the
+// slice (the addFilters attribute lives there, not on @WebMvcTest). The
+// component-scanned WexRateLimiterFilter still gets instantiated by the slice,
+// so a @MockBean for RateLimiterRegistry is provided below. The filter's
+// behaviour is covered by WexRateLimiterFilterTest separately; this slice is
+// for controller + advice tests.
+@WebMvcTest(PurchaseController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @Import({ContentGuard.class, ContentGuardAdvice.class, ProblemDetailExceptionHandler.class,
         PurchaseControllerWebMvcTest.HasherConfig.class})
 class PurchaseControllerWebMvcTest {
