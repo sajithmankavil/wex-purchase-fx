@@ -31,7 +31,7 @@ class WexRateLimiterFilterTest {
     void setUp() {
         mapper = new ObjectMapper();
         // 1 permit per second; timeout 0 so the second call within a second is rejected.
-        filter = new WexRateLimiterFilter(RateLimiterRegistry.ofDefaults(), mapper, 1, 0);
+        filter = new WexRateLimiterFilter(RateLimiterRegistry.ofDefaults(), mapper, 1, 0, 1);
     }
 
     @Test

@@ -115,11 +115,24 @@ public class ProblemDetailExceptionHandler {
                 Map.of("id", String.valueOf(e.getId())), null);
     }
 
+    /**
+     * Closes C 30-review §4.7 (NEW MED) — {@link MalformedIdentifierException#getInput()}
+     * is arbitrary attacker-controlled text (the failure mode is "input was not
+     * UUID-shaped" — Luhn-valid PAN-shaped strings can land here). It must NEVER
+     * be logged in plain text or echoed in the response body. Mirrors the A2 §5
+     * treatment of {@link InvalidCurrencyException}.
+     */
     @ExceptionHandler(MalformedIdentifierException.class)
     public ResponseEntity<ProblemDetail> onMalformedId(MalformedIdentifierException e) {
+        String hashed = hasher.hash(e.getInput());
+        int length = e.getInput() == null ? 0 : e.getInput().length();
+        LOG.warn("malformed_identifier.detected idHash={} idLength={}", hashed, length);
+        Map<String, Object> idDetails = new LinkedHashMap<>();
+        idDetails.put("hash", hashed);
+        idDetails.put("length", length);
         return respond(HttpStatus.BAD_REQUEST, "MALFORMED_IDENTIFIER",
                 "Purchase identifier is not a valid UUID v7",
-                Map.of("id", e.getInput()), null);
+                Map.of("reason", "malformed-uuid", "id", idDetails), null);
     }
 
     /**

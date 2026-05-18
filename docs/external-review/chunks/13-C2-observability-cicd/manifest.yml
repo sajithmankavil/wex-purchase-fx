@@ -1,13 +1,13 @@
 chunk_id: 13-C2-observability-cicd
-status: deviation_surfaced   # implementer LOC-overage surface 2026-05-18; honest estimate ~2,200-2,580 vs 1,800 hard cap; proposed C2/C3 split — see 10-deviation.md
+status: summary_posted   # 2026-05-18 — all S1 + S4 work complete; 8 conditions ADDRESSED; +1,448/-22 net, within 1,500 soft target
 prompt_sha: ee426cf1e0e807731623d671cecf51f5149484e2
-clarification_sha: null
+clarification_sha: null   # set by `git hash-object 15-clarification.md` once committed
 deviation_sha: e8f719401955cc4d214538cfa1657b009b53823a
-summary_sha: null
+summary_sha: 601b48eeb7d992cb5b6eeb9aac1cfa2f2046aa28
 review_sha: null
 pr: null
 ci_url: null
-deviations_open: [capacity-overage-proposed-c2-c3-split]
+deviations_open: []   # capacity-overage-proposed-c2-c3-split — resolved by 15-clarification.md option (a) acceptance
 review_conditions:
   # 8 carry-forwards from 13-C-api-observability/30-review.md §4 (these are intake items for THIS chunk's PR, not carry-forwards
   # to a later chunk — C2 is the final Phase-13 sub-chunk).
@@ -20,5 +20,5 @@ review_conditions:
   - malformed-identifier-input-hashing          # §4.7 MED — NEW finding; mirror A2 §5 redaction on MalformedIdentifierException
   - rate-limit-retry-after-header-value         # §4.8 LOW — confirm/adjust the WexRateLimiterFilter Retry-After value
 follow_ups: []
-next_chunk: null   # FINAL Phase-13 chunk after C2 merge; project advances to Phase 10 (Operational Readiness Gate)
+next_chunk: 13-C3-openapi-cicd   # corrected 2026-05-18 per 15-clarification.md — C3 (S2 + S3 deferred items) is now the FINAL Phase-13 chunk; project advances to Phase 10 (bulk-pass) after C3 merge per directives/2026-05-18-phase-10-11-bulk-pass-protocol.md
 depends_on: [13-C-api-observability]   # off `main` post-C-merge (PR #9 rebase)

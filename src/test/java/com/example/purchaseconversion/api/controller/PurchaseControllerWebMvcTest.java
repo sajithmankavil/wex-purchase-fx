@@ -184,6 +184,21 @@ class PurchaseControllerWebMvcTest {
     }
 
     @Test
+    @DisplayName("C 30-review §4.7 — Luhn-PAN-shaped id in path is hashed in response; no raw '4242' echoed")
+    void retrieveMalformedHashesInput() throws Exception {
+        String pan = "4242424242424242";
+        mvc.perform(get("/api/v1/purchases/{id}", pan))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.errorCode").value("MALFORMED_IDENTIFIER"))
+                .andExpect(jsonPath("$.details.reason").value("malformed-uuid"))
+                .andExpect(jsonPath("$.details.id.hash").value(notNullValue()))
+                .andExpect(jsonPath("$.details.id.length").value(equalTo(pan.length())))
+                // Critical: raw "4242" substring MUST NOT appear in the response body.
+                .andExpect(content().string(not(containsString("4242"))));
+    }
+
+    @Test
     @DisplayName("GET /{id} — not found → 404 PURCHASE_NOT_FOUND")
     void retrieveNotFound() throws Exception {
         PurchaseId id = PurchaseId.fromString(VALID_V7_ID);
