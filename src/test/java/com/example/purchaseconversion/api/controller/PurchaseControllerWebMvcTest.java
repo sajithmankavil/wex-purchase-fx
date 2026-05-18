@@ -27,7 +27,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -68,9 +68,9 @@ class PurchaseControllerWebMvcTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
 
-    @MockitoBean private RegisterPurchaseUseCase registerPurchase;
-    @MockitoBean private RetrievePurchaseUseCase retrievePurchase;
-    @MockitoBean private ConvertPurchaseUseCase convertPurchase;
+    @MockBean private RegisterPurchaseUseCase registerPurchase;
+    @MockBean private RetrievePurchaseUseCase retrievePurchase;
+    @MockBean private ConvertPurchaseUseCase convertPurchase;
 
     private static final String VALID_V7_ID = newV7Id();
 
