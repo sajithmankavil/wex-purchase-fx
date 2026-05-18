@@ -109,6 +109,23 @@
             <version>7.4</version>
         </dependency>
 
+        <!-- OpenTelemetry — Spring Boot 3 Micrometer-Tracing bridge + OTLP exporter (C2 §S1).
+             The OTel-Spring-Boot starter (alternative path) duplicates auto-instrumentation;
+             Micrometer Tracing is the modern Spring Boot 3 idiom and is lighter weight. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
+        <!-- Prometheus exposition for actuator scrape endpoint -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- JDBC + DataSource autoconfiguration; we use plain JdbcClient (no JPA per D-2) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

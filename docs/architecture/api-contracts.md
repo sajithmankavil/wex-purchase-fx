@@ -288,6 +288,7 @@ The principle: **`CONVERSION_RATE_NOT_AVAILABLE`** is the terminal answer when t
 | `X-Correlation-Id` | Request/Response | optional in, always out | Generated if absent. Echo in response. |
 | `Idempotency-Key` | Request (POST) | optional (P1) | Replay-safe semantics; AC-001b documents the absence consequence. |
 | `Retry-After` | Response (503) | yes | Seconds; default **300** (Phase-4 G4-P1-18; raised from 30 to avoid amplifying Treasury outages). Tunable via `WEX_RETRY_AFTER_SECONDS`. |
+| `Retry-After` | Response (429) | yes | Seconds; default **1** for inbound rate-limit (Resilience4j refresh period is 1s; clients can retry on the next-second budget). Tunable via `WEX_RATE_LIMIT_RETRY_AFTER_SECONDS`. **C2 30-review §4.8 decision** — kept at 1s rather than 60s after confirming with the api-contracts owner: inbound 429 is a transient overload signal, not an upstream-outage signal, so back-off should be granular. |
 | `traceparent` | Request/Response | optional | W3C trace propagation; emitted outbound to Treasury. |
 
 ---

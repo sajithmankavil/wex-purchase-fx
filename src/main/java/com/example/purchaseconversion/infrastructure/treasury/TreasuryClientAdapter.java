@@ -201,17 +201,33 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
         }
     }
 
+    /**
+     * Closes C 30-review §4.5 — use {@code StructuredArguments.kv(...)} so the
+     * logstash-logback-encoder JSON output places {@code currency}, window
+     * bounds, {@code outcome}, {@code latencyMs}, and {@code errClass} as
+     * TOP-LEVEL JSON fields rather than concatenated into {@code message}. The
+     * structured form is what downstream parsers (Loki/Splunk/ELK) ingest
+     * directly without regex.
+     */
     private void audit(
             CurrencyDescriptor currency, LocalDate windowLower, LocalDate windowUpper,
             String outcome, long startedNanos, Throwable err) {
         long latencyMs = (System.nanoTime() - startedNanos) / 1_000_000L;
         if (err == null) {
-            LOG.info("treasury.client.call currency={} windowLower={} windowUpper={} outcome={} latencyMs={}",
-                    currency.value(), windowLower, windowUpper, outcome, latencyMs);
+            LOG.info("treasury.client.call",
+                    net.logstash.logback.argument.StructuredArguments.kv("currency", currency.value()),
+                    net.logstash.logback.argument.StructuredArguments.kv("windowLower", windowLower.toString()),
+                    net.logstash.logback.argument.StructuredArguments.kv("windowUpper", windowUpper.toString()),
+                    net.logstash.logback.argument.StructuredArguments.kv("outcome", outcome),
+                    net.logstash.logback.argument.StructuredArguments.kv("latencyMs", latencyMs));
         } else {
-            LOG.warn("treasury.client.call currency={} windowLower={} windowUpper={} outcome={} latencyMs={} errClass={}",
-                    currency.value(), windowLower, windowUpper, outcome, latencyMs,
-                    err.getClass().getSimpleName());
+            LOG.warn("treasury.client.call",
+                    net.logstash.logback.argument.StructuredArguments.kv("currency", currency.value()),
+                    net.logstash.logback.argument.StructuredArguments.kv("windowLower", windowLower.toString()),
+                    net.logstash.logback.argument.StructuredArguments.kv("windowUpper", windowUpper.toString()),
+                    net.logstash.logback.argument.StructuredArguments.kv("outcome", outcome),
+                    net.logstash.logback.argument.StructuredArguments.kv("latencyMs", latencyMs),
+                    net.logstash.logback.argument.StructuredArguments.kv("errClass", err.getClass().getSimpleName()));
         }
     }
 

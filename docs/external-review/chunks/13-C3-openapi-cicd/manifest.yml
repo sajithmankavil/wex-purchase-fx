@@ -1,0 +1,14 @@
+chunk_id: 13-C3-openapi-cicd
+status: prompt_received   # created 2026-05-18 alongside C2's 15-clarification.md (C2/C3 split acceptance)
+prompt_sha: null   # set by `git hash-object 00-prompt.md` once committed
+summary_sha: null
+review_sha: null
+pr: null
+ci_url: null
+deviations_open: []
+review_conditions: []   # C3 starts clean; S2/S3 items are direct deliverables, not review-derived conditions
+follow_ups: []
+supersedes_part_of: 13-C2-observability-cicd   # C3 inherits S2 + S3 from the original C2 scope
+next_chunk: null   # FINAL Phase-13 chunk; after merge, Phase 13 closes and Phase 10 begins via the bulk-pass protocol (directives/2026-05-18-phase-10-11-bulk-pass-protocol.md)
+depends_on: [13-C2-observability-cicd]
+depends_on_satisfied: false   # C2 must merge to main before C3 starts

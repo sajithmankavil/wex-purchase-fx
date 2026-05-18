@@ -41,12 +41,14 @@ public class WexRateLimiterFilter extends OncePerRequestFilter {
 
     private final RateLimiter rateLimiter;
     private final ObjectMapper objectMapper;
+    private final String retryAfterSeconds;
 
     public WexRateLimiterFilter(
             RateLimiterRegistry registry,
             ObjectMapper objectMapper,
             @Value("${wex.ratelimit.permits-per-second:50}") int permits,
-            @Value("${wex.ratelimit.timeout-ms:0}") long timeoutMs) {
+            @Value("${wex.ratelimit.timeout-ms:0}") long timeoutMs,
+            @Value("${wex.ratelimit.retry-after-seconds:1}") int retryAfter) {
         // If the registry already carries a configured instance from application.yml, reuse it;
         // otherwise install a programmatic config here so the filter is unit-test friendly.
         if (registry.getAllRateLimiters().stream().anyMatch(rl -> INSTANCE.equals(rl.getName()))) {
@@ -60,6 +62,9 @@ public class WexRateLimiterFilter extends OncePerRequestFilter {
             this.rateLimiter = registry.rateLimiter(INSTANCE, cfg);
         }
         this.objectMapper = objectMapper;
+        // C2 30-review §4.8 — 429 Retry-After is env-tunable; default 1s matches Resilience4j
+        // 1s refresh period. Documented in api-contracts.md §7.
+        this.retryAfterSeconds = String.valueOf(retryAfter);
     }
 
     @Override
@@ -91,7 +96,7 @@ public class WexRateLimiterFilter extends OncePerRequestFilter {
     private void writeTooManyRequests(HttpServletRequest req, HttpServletResponse res) throws IOException {
         res.setStatus(429);
         res.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        res.setHeader(HttpHeaders.RETRY_AFTER, "1");
+        res.setHeader(HttpHeaders.RETRY_AFTER, retryAfterSeconds);
         ObjectNode body = objectMapper.createObjectNode()
                 .put("type", "https://wex.example.com/problems/too-many-requests")
                 .put("title", "Too Many Requests")

@@ -68,10 +68,24 @@ class ProblemDetailExceptionHandlerTest {
     @Test
     @DisplayName("MalformedIdentifier → 400 MALFORMED_IDENTIFIER")
     void malformedId() {
-        ResponseEntity<ProblemDetail> r = handler.onMalformedId(new MalformedIdentifierException("bad-id"));
+        // C 30-review §4.7 (NEW MED) — input must be hashed in both log AND response body.
+        String pan = "4242424242424242";
+        ResponseEntity<ProblemDetail> r = handler.onMalformedId(new MalformedIdentifierException(pan));
         assertThat(r.getStatusCode().value()).isEqualTo(400);
         assertThat(propAsString(r, "errorCode")).isEqualTo("MALFORMED_IDENTIFIER");
-        assertThat(detailsMap(r)).containsEntry("id", "bad-id");
+
+        Map<String, Object> details = detailsMap(r);
+        assertThat(details).containsEntry("reason", "malformed-uuid");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> idDetails = (Map<String, Object>) details.get("id");
+        assertThat(idDetails).isNotNull();
+        assertThat((String) idDetails.get("hash")).startsWith(hasher.keyVersion() + ":");
+        assertThat(idDetails.get("length")).isEqualTo(pan.length());
+
+        // Raw value MUST NOT appear anywhere in the response body.
+        assertThat(details.values().toString()).doesNotContain(pan);
+        assertThat(idDetails.values().toString()).doesNotContain("4242");
     }
 
     @Test

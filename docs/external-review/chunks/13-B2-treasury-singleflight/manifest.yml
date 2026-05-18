@@ -1,5 +1,5 @@
 chunk_id: 13-B2-treasury-singleflight
-status: under_review   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flip to `accepted` on merge per forward-motion mechanical-transition pattern. One pre-merge condition (§1 lock-file hygiene); two carry-forwards routed to Chunk C.
+status: accepted   # mechanical transition 2026-05-18 — B2 merged to main at `1b02dcf` (substantive) + `c59b9cf` (.claude/scheduled_tasks.lock hygiene fix closing 30-review §1 pre-merge condition); two carry-forwards (§2 audit-log + §3 whitelist) addressed in 13-C.
 prompt_sha: 250e7ed43ad1e55ea3c73597c0afc499941530a3
 summary_sha: 8da0fa97170361f486997c383bf17b0dcf0f9b8f
 review_sha: 5fb95e55eecdedc3ab461c3f7eb30a2a642fc90a
