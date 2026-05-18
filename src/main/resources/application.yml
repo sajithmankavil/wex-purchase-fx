@@ -39,6 +39,55 @@ wex:
       # Readiness flips DOWN when active >= max-1 sustained for this many ms
       # (G6-P0-4 / G4-P1-19; readiness check is consulted by the actuator probe)
       sustained-saturation-ms: ${WEX_READINESS_DB_POOL_SUSTAINED_MS:5000}
+  treasury:
+    # Treasury Fiscal Data API — ADR-0001 D-9. User-Agent set per Treasury best practice (G-P2-5).
+    base-url: ${WEX_TREASURY_BASE_URL:https://api.fiscaldata.treasury.gov}
+    rates-path: ${WEX_TREASURY_RATES_PATH:/services/api/fiscal_service/v1/accounting/od/rates_of_exchange}
+    user-agent: ${WEX_TREASURY_USER_AGENT:wex-purchase-fx/0.1.0 (contact:ops@example.com)}
+  single-flight:
+    # D-9 loser semantics: 10 s wait + 100 ms DB poll + WinnerOutcome ref mirror.
+    loser-wait-ms: ${WEX_SF_LOSER_WAIT_MS:10000}
+    db-poll-interval-ms: ${WEX_SF_DB_POLL_INTERVAL_MS:100}
+
+# Resilience4j — ADR-0001 D-9; failure-modes-and-resilience.md §3
+resilience4j:
+  circuitbreaker:
+    instances:
+      treasuryClient:
+        sliding-window-type: TIME_BASED
+        sliding-window-size: 300                  # 300-second window (G6-P0-1)
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 300000       # 5 min before half-open
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+  retry:
+    instances:
+      treasuryClient:
+        max-attempts: 3
+        wait-duration: 100
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+  bulkhead:
+    instances:
+      treasuryClient:
+        max-concurrent-calls: 10
+        max-wait-duration: 1s
+  timelimiter:
+    instances:
+      treasuryClient:
+        timeout-duration: 2s
+        cancel-running-future: true
 
 management:
   endpoints:

@@ -9,8 +9,8 @@
 | 13-A1-domain | accepted | #2 (rebase) | `04f19aa` (plant `3e03380` + revert `04f19aa` preserved) | — closed |
 | 13-A2-application | accepted | #5 (rebase) | `48dc656` + dossier follow-ups | — closed |
 | 13-B-infrastructure | superseded | — | — | superseded by `13-B1-persistence-cache` + `13-B2-treasury-singleflight` per `chunks/13-B-infrastructure/30-review.md` |
-| 13-B1-persistence-cache | under_review | #7 | — | reviewer verdict 2026-05-18: ACCEPTED WITH CONDITIONS (`30-review.md`); 1 MED follow-up (per-class ConversionService Pitest); implementer may merge as-is or land §2(iii) fix first |
-| 13-B2-treasury-singleflight | prompt_received | — | — | starts after B1 merges; `00-prompt.md` ready |
+| 13-B1-persistence-cache | accepted | #7 (rebase) | `d96e08b` (+ `44346f3` manifest, `bd57073` 30-review) | — closed; 1 MED follow-up tracked on B1 manifest (`pitest-conversionservice-per-class-execution`) |
+| 13-B2-treasury-singleflight | implementing | — | — | implementer started on `feature/chunk-b2-treasury-singleflight` off `main`; depends_on B1 satisfied |
 | 13-C-api-observability | prompt_received | — | — | starts after B2 merges; intake condition in `chunks/13-C-api-observability/15-clarification.md` |
 
 Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded`.
@@ -23,8 +23,8 @@ Status enum: `prompt_received | deviation_surfaced | implementing | summary_post
 13-A1-domain                    ← accepted, merged 04f19aa (plant+revert preserved)
 13-A2-application               ← accepted, merged 48dc656
 13-B-infrastructure             ← superseded by B1+B2 (LOC overage 2,800 vs hard 1,800 — split accepted)
-13-B1-persistence-cache         ← prompt_received (absorbs both A2 intake items inline) — ~1,300 LOC est., rollback class C
-13-B2-treasury-singleflight     ← prompt_received — ~1,400 LOC est., rollback class A
+13-B1-persistence-cache         ← accepted, merged d96e08b (PR #7 rebase; +2,743/−51 actual; one-time LOC concession ratified)
+13-B2-treasury-singleflight     ← implementing — ~1,400 LOC est., rollback class A, 1,800 LOC cap reaffirmed
 13-C-api-observability          ← prompt_received (pre-staged) — depends on B2 — final chunk
 ```
 
@@ -52,6 +52,7 @@ True file-watch ("watch for each other and go") requires a GitHub Action on `doc
 
 ## Recent implementer activity
 
+- 2026-05-18 — Shipped `13-B1-persistence-cache` (PR #7, rebase). Substantive commit `d96e08b feat(Chunk B1): persistence + cache infrastructure (M3 partial) + A2 regression fix`; dossier follow-ups `44346f3` (manifest pr=7 + ci_url) and `bd57073` (30-review landed). Discovered + fixed A2 `48dc656` `.gitignore` regression (unscoped `out/` had matched `application/port/out/` and dropped 6 ports — `main` was non-compilable from A2 merge until B1 merge, masked by M7 Java-build carry-forward). B1 actual diff `+2,743 / −51` over 31 files; reviewer accepted as one-time concession driven by co-located regression-fix + prompt-mandated test density. Immediately started B2 on `feature/chunk-b2-treasury-singleflight` off `main`; B2 manifest flipped `prompt_received → implementing`.
 - 2026-05-17 — Surfaced LOC-overage deviation on `13-B-infrastructure` before implementation began. Honest estimate ~2,800 LOC across 5 adapters + Liquibase + 12 ITs + 2 A2 intake items vs the 1,800 hard upper bound. Proposed B1/B2 split along the persistence/concurrency seam in `chunks/13-B-infrastructure/10-deviation.md`. Manifest flipped to `deviation_surfaced`. Awaiting reviewer (a) accept-split / (b) accept-unsplit-with-relaxed-cap / (c) alternative-split.
 - 2026-05-17 — Merged PR #5 (A2) rebase strategy; commit `48dc656` on main. A2 manifest flipped `summary_posted → accepted` once reviewer 30-review.md landed; pulled reviewer's STATUS.md + manifest updates + 30-review.md + B/C 15-clarification.md files into the PR before merge per dossier convention.
 - 2026-05-17 — Ran full merge sequence per `30-review-v2.md`: PR #4 → PR #3 → rebase A1 → PR #2. All four merged. A1's `manifest.status` flipped to `accepted` under forward-motion bias (mechanical transition; substantive review was `30-review.md` §1-§4). Started A2 on `feature/chunk-a2-application`; flipped A2 manifest to `implementing`.

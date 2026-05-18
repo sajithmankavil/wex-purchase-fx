@@ -1,7 +1,7 @@
 chunk_id: 13-B2-treasury-singleflight
-status: prompt_received
+status: summary_posted
 prompt_sha: 250e7ed43ad1e55ea3c73597c0afc499941530a3
-summary_sha: null
+summary_sha: 8da0fa97170361f486997c383bf17b0dcf0f9b8f
 review_sha: null
 pr: null
 ci_url: null
@@ -11,4 +11,4 @@ follow_ups: []
 supersedes_part_of: 13-B-infrastructure   # B1 + B2 jointly supersede the original B chunk
 next_chunk: 13-C-api-observability
 depends_on: [13-B1-persistence-cache]
-depends_on_satisfied: false  # B1 must merge to main before B2 starts
+depends_on_satisfied: true  # B1 merged to main 2026-05-18 as commit d96e08b (PR #7)
