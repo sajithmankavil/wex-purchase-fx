@@ -259,14 +259,41 @@ From `HITL-CONSOLIDATED-REVIEW.md §7.3`:
 
 ---
 
+## 7A. Dossier review-trail summary
+
+Nine Phase-13 chunk dossiers each include a reviewer-authored `30-review.md` (~200 LOC each). The table below is a one-paragraph-per-chunk summary so the assessor can skim instead of reading all nine in full.
+
+| Chunk | Subject | LOC delta | Reviewer verdict | One-line summary |
+|---|---|---:|---|---|
+| **13-PRE-dossier-bootstrap** | Scaffold the external-review dossier directory + chunk template + STATUS.md | +790 / -0 | ACCEPTED (1 condition; line-ending finding withdrawn in v2) | First chunk. Set the dossier convention (`00-prompt.md` / `10-deviation.md` / `15-clarification.md` / `20-summary.md` / `30-review.md` / `manifest.yml`). Reviewer initially flagged line-ending mismatch; withdrew after dev showed actual PR diff was clean. |
+| **13-PRE-readiness-check-fix** | Defer strict-mode in `ops-check` + `pci-check` to production-approval marker | +200 / -50 | ACCEPTED | Implemented the strict-flip directive from 2026-05-17. Chicken-and-egg: strict-mode failed the very first PR trying to add the bundle. Defer to production-marker presence. |
+| **13-A1-domain** | Pure-domain layer: `Money`, `RateSelectionPolicy`, `PurchaseId` (UUID v7), `ExchangeRate`, `CurrencyDescriptor` | +1,640 / -0 | ACCEPTED (mechanical; substantive review in 30-review.md §§1-4) | Framework-free POJOs. ArchUnit fitness functions guard hexagonal boundaries. Full Pitest mutation testing on the rate-selection 6-month rule. Verified against the brief's "rate ≤ purchase date within 6 months" precisely. |
+| **13-A2-application** | Use cases + ports: `ConversionService`, `PurchasePort`, `ExchangeRatePort`, `CurrencyAliasPort` | +1,400 / -0 | ACCEPTED WITH CONDITIONS (3 follow-ups → B/C) | Reviewer surfaced 3 carry-forwards: pom.xml JaCoCo + Pitest scope, hot-cache window-completeness, currency-input hashing for `InvalidCurrencyException`. All addressed in subsequent chunks. |
+| **13-B1-persistence-cache** | JDBC repos + Liquibase + Caffeine hot-cache + `ExchangeRateHotCacheAdapter` | +2,743 / -51 | ACCEPTED WITH CONDITIONS (1 MED follow-up → C; one-time LOC concession) | Discovered + fixed an A2 regression: A2's `.gitignore` matched `application/port/out/` (hexagonal "outbound ports" package) as if it were a build artefact, silently dropping 6 ports from main. B1 rescoped `out/` → `/out/`. Reviewer accepted +943 LOC over the 1,800 cap as one-time concession (regression-fix co-location + prompt-mandated test density). |
+| **13-B2-treasury-singleflight** | Treasury HTTP client + `SingleFlightGate` + Resilience4j | +1,461 / -19 | ACCEPTED WITH CONDITIONS (1 pre-merge MED + 2 → C) | Pre-merge MED: `.claude/scheduled_tasks.lock` committed accidentally. Fixed via `.gitignore` + `git rm --cached`. Two carry-forwards routed to C: Treasury audit-log structured fields + DESCRIPTOR_WHITELIST regression test. |
+| **13-C-api-observability** | HTTP layer: `PurchaseController`, `@RestControllerAdvice` (RFC 9457), `ContentGuard`, filters | +2,051 / -7 | ACCEPTED WITH CONDITIONS (1 NEW MED + 7 carry-forwards → C2) | Surfaced scope deviation post-implementation in §Risks: M4 fully shipped, M5/M6/M7 minimal. Reviewer chose option (a) — accept this as C, defer M5/M6/M7 to C2/C3. NEW MED §4.7: `MalformedIdentifierException` carried raw input via `getInput()` + exception message; mirrors A2 §5 threat. Routed to C2. |
+| **13-C2-observability-cicd** | M5 deep observability + 8 review-derived conditions | +1,448 / -22 | ACCEPTED WITH CONDITIONS (3 partial-closure carry-forwards → C3) | §4.7 NEW MED CLOSED (hashed in log + response body, raw value omitted). v2 self-correction: §4.4 `RateRevisionEndToEndIT` bypassed versioned-upsert via interstitial DELETE; 3rd MED routed to C3. C2 honoured 1,500 soft cap from start by pre-implementation deviation surfacing — protocol fully internalised after B1/C concessions. |
+| **13-C3-openapi-cicd** | M6 OpenAPI surface + M7 CI/CD workflows + 3 C2 MED carry-forwards | +1,256 / -84 | ACCEPTED WITH CONDITIONS (5 new findings; F2 pt1 closed pre-merge; F1+F2pt2+F3+F4+F5 → Phase 10/11/12) | All 3 C2 MED carry-forwards CLOSED (StructuredArguments migration; MetricsCatalog wiring at 13 call sites; `RateRevisionEndToEndIT` exercises versioned-upsert via `expire-after-write-hours=0`). FINAL Phase-13 chunk; bulk-pass protocol activated on merge. |
+
+**Reviewer-authored 30-review.md files for all 9 chunks are committed under [`docs/external-review/chunks/`](docs/external-review/chunks/)** if the assessor wants to verify any specific verdict.
+
+**Phase 10 30-review.md** (reviewer-authored, 177 LOC): ACCEPTED WITH CONDITIONS — 14 conditions (1 dropped, 11 forward-routed to Phase 11/12, 2 hygiene-LOWs CLOSED in hygiene commit).
+
+**Phase 11 30-review.md** (dev-authored provisional per HITL-gate directive, 158 LOC): ACCEPTED WITH CONDITIONS — ratified by `HITL-CONSOLIDATED-REVIEW.md` with 2 amendments (counts-not-audited, `incident-response-pci` stub acceptable for case-study).
+
+**`HITL-CONSOLIDATED-REVIEW.md`** (reviewer-authored, ~430 LOC): canonical verdict **READY FOR CASE-STUDY HITL WITH FINDINGS**. Ratifies all 9 chunk verdicts + Phase 10 + Phase 11; 5 conditions closed; 19 Phase-12-equivalent items recorded as case-study-out-of-scope per the case-study scope clarification directive.
+
+---
+
 ## 8. Where to deep-dive
 
 | Topic | File |
 |---|---|
 | **Project rollup + audit ledger** | `docs/external-review/STATUS.md` |
 | **Canonical reviewer verdict** | `docs/external-review/HITL-CONSOLIDATED-REVIEW.md` |
-| **Cross-cutting directives** | `docs/external-review/directives/*.md` (4 files) |
-| **Per-chunk reviewer verdicts** | `docs/external-review/chunks/13-*/30-review.md` (9 chunks) |
+| **Operating model (consolidated)** | `docs/external-review/OPERATING-MODEL.md` |
+| **Cross-cutting directives** | `docs/external-review/directives/*.md` (5 files) |
+| **Per-chunk reviewer verdicts** | `docs/external-review/chunks/13-*/30-review.md` (9 chunks) — summary in §7A above |
 | **Phase 10 / 11 / 12 dossiers** | `docs/external-review/phases/{10,11,12}-*/` |
 | **Architecture decisions** | `docs/architecture/adr-0001-core-architecture.md` + component / deployment / API-contracts docs |
 | **PCI scope + control mapping** | `docs/security/pci-scope-and-cde.md`, `pci-dss-control-mapping.md` |
