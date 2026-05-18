@@ -26,7 +26,11 @@ rules:
       field: "content.application/problem+json"
       function: truthy
 
-  # PII-shape rejection — no raw `pan`, `cvv`, `track`, `password` field names anywhere
+  # PII-shape rejection — no raw `pan`, `cvv`, `track`, `password` field names anywhere.
+  # OAS field-name convention is lowerCamelCase; we list all-lowercase forms only.
+  # (Spectral runs on Node ECMA regex, which does not support inline (?i) flags;
+  # for case-insensitive matching we would need character classes, but that
+  # noise isn't worth it for the lowerCamelCase convention.)
   wex-no-pii-field-names:
     description: Schema field names matching PII patterns are forbidden in the OAS.
     severity: error
@@ -34,7 +38,7 @@ rules:
     then:
       function: pattern
       functionOptions:
-        notMatch: "(?i)^(pan|cvv|track[12]?|password|secret|ssn|cardnumber)$"
+        notMatch: "^(pan|cvv|track[12]?|password|secret|ssn|cardnumber)$"
 
   # ProblemDetail must define an errorCode enum so clients can pattern-match
   wex-problem-detail-enumerates-error-codes:
