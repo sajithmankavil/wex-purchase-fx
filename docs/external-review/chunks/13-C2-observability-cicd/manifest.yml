@@ -1,0 +1,24 @@
+chunk_id: 13-C2-observability-cicd
+status: deviation_surfaced   # implementer LOC-overage surface 2026-05-18; honest estimate ~2,200-2,580 vs 1,800 hard cap; proposed C2/C3 split — see 10-deviation.md
+prompt_sha: ee426cf1e0e807731623d671cecf51f5149484e2
+clarification_sha: null
+deviation_sha: e8f719401955cc4d214538cfa1657b009b53823a
+summary_sha: null
+review_sha: null
+pr: null
+ci_url: null
+deviations_open: [capacity-overage-proposed-c2-c3-split]
+review_conditions:
+  # 8 carry-forwards from 13-C-api-observability/30-review.md §4 (these are intake items for THIS chunk's PR, not carry-forwards
+  # to a later chunk — C2 is the final Phase-13 sub-chunk).
+  - logging-pii-guard-test-regression           # §4.1 MED — LoggingPiiGuardTest in BOTH local + ci profiles (G8-P1-10)
+  - rate-limit-ordering-integration-test        # §4.2 MED — RateLimitOrderingIT (AC-T-6 servlet-container ordering)
+  - end-to-end-treasury-it                      # §4.3 MED — EndToEndTreasuryIT (AC-T-3 fixture-widening discipline)
+  - rate-revision-end-to-end-it                 # §4.4 LOW — RateRevisionEndToEndIT (AC-026b at HTTP boundary)
+  - treasury-audit-structured-fields            # §4.5 LOW — StructuredArguments.kv migration in TreasuryClientAdapter::audit
+  - treasury-filter-whitelist-regression-test   # §4.6 LOW — unit test for DESCRIPTOR_WHITELIST rejection paths
+  - malformed-identifier-input-hashing          # §4.7 MED — NEW finding; mirror A2 §5 redaction on MalformedIdentifierException
+  - rate-limit-retry-after-header-value         # §4.8 LOW — confirm/adjust the WexRateLimiterFilter Retry-After value
+follow_ups: []
+next_chunk: null   # FINAL Phase-13 chunk after C2 merge; project advances to Phase 10 (Operational Readiness Gate)
+depends_on: [13-C-api-observability]   # off `main` post-C-merge (PR #9 rebase)
