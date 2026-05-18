@@ -2,8 +2,6 @@ package com.example.purchaseconversion.config;
 
 import com.example.purchaseconversion.application.conversion.ConversionService;
 import com.example.purchaseconversion.application.port.in.ConvertPurchaseUseCase;
-import com.example.purchaseconversion.application.port.in.RegisterPurchaseUseCase;
-import com.example.purchaseconversion.application.port.in.RetrievePurchaseUseCase;
 import com.example.purchaseconversion.application.port.out.ClockPort;
 import com.example.purchaseconversion.application.port.out.CurrencyAliasPort;
 import com.example.purchaseconversion.application.port.out.ExchangeRateHotCachePort;
@@ -13,7 +11,6 @@ import com.example.purchaseconversion.application.port.out.TreasuryClientPort;
 import com.example.purchaseconversion.application.purchase.PurchaseService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.client.RestClient;
@@ -53,18 +50,13 @@ public class WexConfig {
         return JdbcClient.create(dataSource);
     }
 
-    @Bean
-    @Primary
-    public RegisterPurchaseUseCase registerPurchaseUseCase(PurchaseService service) {
-        return service;
-    }
-
-    @Bean
-    @Primary
-    public RetrievePurchaseUseCase retrievePurchaseUseCase(PurchaseService service) {
-        return service;
-    }
-
+    // The single `purchaseService` bean implements both RegisterPurchaseUseCase and
+    // RetrievePurchaseUseCase (see PurchaseService class). Two extra @Bean @Primary
+    // factories previously aliased the same instance under interface-named bean
+    // names — that registered THREE beans qualifying for each use-case interface,
+    // all marked @Primary, which broke Spring's primary-bean-selection rule
+    // (NoUniqueBeanDefinitionException at controller wiring). Removed the aliases;
+    // Spring resolves by type via the single bean below.
     @Bean
     public PurchaseService purchaseService(PurchaseRepositoryPort purchaseRepository, ClockPort clock) {
         return new PurchaseService(purchaseRepository, clock);
