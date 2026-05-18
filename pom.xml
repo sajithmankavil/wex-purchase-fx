@@ -2,15 +2,30 @@
 <!--
   WEX Purchase Currency Conversion Service.
 
-  M1 (domain layer) pom: plain Maven, no Spring Boot parent yet. M2 (application services)
-  introduces the Spring Boot parent when application beans land. M1 stays framework-free.
-
+  B1 (persistence + cache infrastructure) introduces the Spring Boot parent.
   Stack ratified in docs/architecture/adr-0001-core-architecture.md D-2 (Phase-4 refined).
+
+  Chunk B1 changes (2026-05-17):
+  - Spring Boot 3.x parent
+  - Runtime: Spring Boot starter + spring-boot-starter-jdbc + spring-boot-starter-actuator
+    + Liquibase + Caffeine + H2 (file mode) + PostgreSQL driver + Jackson
+  - Test: spring-boot-starter-test + Testcontainers (junit-jupiter + postgresql)
+  - A2 intake §1 (pom-coverage-mutation-extension-for-application):
+      - JaCoCo: new check-application-coverage execution (line >= 0.80 on application.*)
+      - Pitest: second execution for application classes incl. ConversionService
+        at mutationThreshold 80
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
 
     <groupId>com.example</groupId>
     <artifactId>wex-purchase-fx</artifactId>
@@ -21,7 +36,7 @@
     <description>Stores USD purchase transactions and retrieves them converted via the U.S. Treasury Reporting Rates of Exchange API. Out-of-CDE PCI Tier-1 hygiene.</description>
 
     <properties>
-        <maven.compiler.release>21</maven.compiler.release>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Test stack versions (ADR-0001 D-2 ratified) -->
@@ -30,9 +45,11 @@
         <jqwik.version>1.9.1</jqwik.version>
         <archunit.version>1.3.0</archunit.version>
         <mockito.version>5.14.2</mockito.version>
+        <testcontainers.version>1.20.4</testcontainers.version>
 
-        <!-- Runtime stack (M1 needs only uuid-creator; the rest enters at M2+) -->
+        <!-- Runtime stack additions for B1 -->
         <uuid.creator.version>5.3.3</uuid.creator.version>
+        <caffeine.version>3.1.8</caffeine.version>
 
         <!-- Build plugin versions -->
         <surefire.version>3.5.1</surefire.version>
@@ -40,37 +57,83 @@
         <pitest.version>1.17.0</pitest.version>
         <pitest.junit5.version>1.2.1</pitest.junit5.version>
 
-        <!-- Coverage thresholds (NFR-021; Phase-5 ratified ≥85% on critical classes) -->
-        <jacoco.line.coverage>0.85</jacoco.line.coverage>
-        <jacoco.branch.coverage>0.75</jacoco.branch.coverage>
-        <pitest.mutation.threshold>85</pitest.mutation.threshold>
+        <!-- Coverage thresholds — domain (NFR-021; Phase-5 ratified) -->
+        <jacoco.domain.line>0.85</jacoco.domain.line>
+        <jacoco.domain.branch>0.75</jacoco.domain.branch>
+        <pitest.domain.threshold>85</pitest.domain.threshold>
+
+        <!-- Coverage thresholds — application (NFR-021 via A2 intake §1) -->
+        <jacoco.application.line>0.80</jacoco.application.line>
+        <pitest.application.threshold>80</pitest.application.threshold>
+
+        <!-- Coverage thresholds — infrastructure (B1 prompt §"Acceptance gates") -->
+        <jacoco.infrastructure.line>0.75</jacoco.infrastructure.line>
+        <jacoco.infrastructure.branch>0.65</jacoco.infrastructure.branch>
+        <pitest.infrastructure.threshold>70</pitest.infrastructure.threshold>
+        <pitest.infrastructure.critical.threshold>80</pitest.infrastructure.critical.threshold>
     </properties>
 
     <dependencies>
-        <!-- Runtime: UUID v7 generator (ADR-0001 D-7; Phase-4 G4-P0-4 closure) -->
+        <!-- Spring Boot core: minimal starter; controllers/MVC enter in Chunk C -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- JDBC + DataSource autoconfiguration; we use plain JdbcClient (no JPA per D-2) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- Actuator for readiness/liveness/health (component-design.md §3.4) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Liquibase: schema migration (B1 prompt; rollback class C tags) -->
+        <dependency>
+            <groupId>org.liquibase</groupId>
+            <artifactId>liquibase-core</artifactId>
+        </dependency>
+
+        <!-- Caffeine: hot-cache for ExchangeRate (ADR-0001 D-10) -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
+
+        <!-- H2 (file-mode local; in-memory test default) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- PostgreSQL driver (prod profile; also used by Testcontainers Postgres) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- UUID v7 generator (ADR-0001 D-7; G4-P0-4) -->
         <dependency>
             <groupId>com.github.f4b6a3</groupId>
             <artifactId>uuid-creator</artifactId>
             <version>${uuid.creator.version}</version>
         </dependency>
 
-        <!-- Test: JUnit 5 -->
+        <!-- Test: Spring Boot test (JUnit Jupiter, AssertJ, Mockito, Hamcrest, JsonPath) -->
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.jupiter.version}</version>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
-        <!-- Test: AssertJ for fluent assertions -->
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Test: jqwik for property-based testing (Money invariants) -->
+        <!-- Test: jqwik for property-based testing (Money invariants from A1) -->
         <dependency>
             <groupId>net.jqwik</groupId>
             <artifactId>jqwik</artifactId>
@@ -85,11 +148,31 @@
             <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Test: Testcontainers Postgres (ExchangeRateRepoIT, PurchaseRepoIT, etc.) -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Surefire: runs JUnit 5 and jqwik tests -->
+            <!-- Spring Boot plugin: repackaged jar -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!-- Surefire: runs JUnit 5 and jqwik tests; *Test.java pattern; ITs run in failsafe -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -99,10 +182,33 @@
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
 
-            <!-- JaCoCo: line + branch coverage (NFR-021) -->
+            <!-- Failsafe: integration tests (*IT.java) — Testcontainers-based -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo: line + branch coverage, per-package thresholds (NFR-021) -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -115,10 +221,17 @@
                         </goals>
                     </execution>
                     <execution>
+                        <id>prepare-agent-integration</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                    </execution>
+                    <execution>
                         <id>report</id>
                         <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
+                            <goal>report-integration</goal>
                         </goals>
                     </execution>
                     <execution>
@@ -138,12 +251,67 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>${jacoco.line.coverage}</minimum>
+                                            <minimum>${jacoco.domain.line}</minimum>
                                         </limit>
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>${jacoco.branch.coverage}</minimum>
+                                            <minimum>${jacoco.domain.branch}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                    <!-- A2 intake §1 — application.* line coverage gate -->
+                    <execution>
+                        <id>check-application-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.example.purchaseconversion.application.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.application.line}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                    <!-- B1 — infrastructure.* line + branch coverage gate -->
+                    <execution>
+                        <id>check-infrastructure-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <includes>
+                                        <include>com.example.purchaseconversion.infrastructure.*</include>
+                                    </includes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.infrastructure.line}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.infrastructure.branch}</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
@@ -153,7 +321,7 @@
                 </executions>
             </plugin>
 
-            <!-- Pitest: mutation testing on RateSelectionPolicy + Money (G4-P1-9) -->
+            <!-- Pitest: mutation testing across domain + application + infrastructure -->
             <plugin>
                 <groupId>org.pitest</groupId>
                 <artifactId>pitest-maven</artifactId>
@@ -165,22 +333,80 @@
                         <version>${pitest.junit5.version}</version>
                     </dependency>
                 </dependencies>
-                <configuration>
-                    <targetClasses>
-                        <param>com.example.purchaseconversion.domain.RateSelectionPolicy</param>
-                        <param>com.example.purchaseconversion.domain.Money</param>
-                    </targetClasses>
-                    <targetTests>
-                        <param>com.example.purchaseconversion.domain.RateSelectionPolicyTest</param>
-                        <param>com.example.purchaseconversion.domain.MoneyTest</param>
-                    </targetTests>
-                    <mutationThreshold>${pitest.mutation.threshold}</mutationThreshold>
-                    <failWhenNoMutations>true</failWhenNoMutations>
-                    <outputFormats>
-                        <outputFormat>HTML</outputFormat>
-                        <outputFormat>XML</outputFormat>
-                    </outputFormats>
-                </configuration>
+                <executions>
+                    <!-- Domain: ≥85% on RateSelectionPolicy + Money (G4-P1-9) -->
+                    <execution>
+                        <id>mutation-domain</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>mutationCoverage</goal>
+                        </goals>
+                        <configuration>
+                            <targetClasses>
+                                <param>com.example.purchaseconversion.domain.RateSelectionPolicy</param>
+                                <param>com.example.purchaseconversion.domain.Money</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>com.example.purchaseconversion.domain.RateSelectionPolicyTest</param>
+                                <param>com.example.purchaseconversion.domain.MoneyTest</param>
+                            </targetTests>
+                            <mutationThreshold>${pitest.domain.threshold}</mutationThreshold>
+                            <failWhenNoMutations>true</failWhenNoMutations>
+                            <outputFormats>
+                                <outputFormat>HTML</outputFormat>
+                                <outputFormat>XML</outputFormat>
+                            </outputFormats>
+                        </configuration>
+                    </execution>
+                    <!-- A2 intake §1 — application.* mutation gate; ConversionService is in this set -->
+                    <execution>
+                        <id>mutation-application</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>mutationCoverage</goal>
+                        </goals>
+                        <configuration>
+                            <targetClasses>
+                                <param>com.example.purchaseconversion.application.purchase.*</param>
+                                <param>com.example.purchaseconversion.application.conversion.*</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>com.example.purchaseconversion.application.purchase.*</param>
+                                <param>com.example.purchaseconversion.application.conversion.*</param>
+                            </targetTests>
+                            <mutationThreshold>${pitest.application.threshold}</mutationThreshold>
+                            <failWhenNoMutations>true</failWhenNoMutations>
+                            <outputFormats>
+                                <outputFormat>HTML</outputFormat>
+                                <outputFormat>XML</outputFormat>
+                            </outputFormats>
+                        </configuration>
+                    </execution>
+                    <!-- B1 — infrastructure mutation gate; per-class ≥80% on the cache-invalidation owners -->
+                    <execution>
+                        <id>mutation-infrastructure-critical</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>mutationCoverage</goal>
+                        </goals>
+                        <configuration>
+                            <targetClasses>
+                                <param>com.example.purchaseconversion.infrastructure.persistence.ExchangeRateRepoAdapter</param>
+                                <param>com.example.purchaseconversion.infrastructure.cache.ExchangeRateHotCacheAdapter</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>com.example.purchaseconversion.infrastructure.persistence.*</param>
+                                <param>com.example.purchaseconversion.infrastructure.cache.*</param>
+                            </targetTests>
+                            <mutationThreshold>${pitest.infrastructure.critical.threshold}</mutationThreshold>
+                            <failWhenNoMutations>true</failWhenNoMutations>
+                            <outputFormats>
+                                <outputFormat>HTML</outputFormat>
+                                <outputFormat>XML</outputFormat>
+                            </outputFormats>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

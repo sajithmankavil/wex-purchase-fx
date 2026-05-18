@@ -1,0 +1,31 @@
+{
+  "_doc": "ISO-4217 code OR case-insensitive Treasury descriptor → canonical Treasury descriptor. Phase-3 prototype P-1: 'Euro Zone-Euro' carries a space, not a hyphen.",
+  "aliases": [
+    { "input": "USD",                "canonical": "United States-Dollar" },
+    { "input": "United States-Dollar","canonical": "United States-Dollar" },
+
+    { "input": "EUR",                "canonical": "Euro Zone-Euro" },
+    { "input": "Euro Zone-Euro",     "canonical": "Euro Zone-Euro" },
+
+    { "input": "GBP",                "canonical": "United Kingdom-Pound" },
+    { "input": "United Kingdom-Pound","canonical": "United Kingdom-Pound" },
+
+    { "input": "JPY",                "canonical": "Japan-Yen" },
+    { "input": "Japan-Yen",          "canonical": "Japan-Yen" },
+
+    { "input": "CAD",                "canonical": "Canada-Dollar" },
+    { "input": "Canada-Dollar",      "canonical": "Canada-Dollar" },
+
+    { "input": "AUD",                "canonical": "Australia-Dollar" },
+    { "input": "Australia-Dollar",   "canonical": "Australia-Dollar" },
+
+    { "input": "CHF",                "canonical": "Switzerland-Franc" },
+    { "input": "Switzerland-Franc",  "canonical": "Switzerland-Franc" },
+
+    { "input": "CNY",                "canonical": "China-Yuan Renminbi" },
+    { "input": "China-Yuan Renminbi","canonical": "China-Yuan Renminbi" },
+
+    { "input": "INR",                "canonical": "India-Rupee" },
+    { "input": "India-Rupee",        "canonical": "India-Rupee" }
+  ]
+}

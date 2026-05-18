@@ -1,0 +1,65 @@
+# WEX Purchase Currency Conversion Service — application configuration.
+#
+# DataSource is bound from WEX_DB_* env vars per deployment-architecture.md §4.3.
+# No URLs are committed; the prod profile is fully env-driven. Local default is
+# H2 in file mode at ${WEX_DATA_DIR}/wex.mv.db.
+
+spring:
+  application:
+    name: wex-purchase-fx
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    contexts: ${WEX_LIQUIBASE_CONTEXTS:}
+  datasource:
+    url: ${WEX_DB_URL:jdbc:h2:file:${WEX_DATA_DIR:./.wex-data}/wex;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE}
+    username: ${WEX_DB_USERNAME:sa}
+    password: ${WEX_DB_PASSWORD:}
+    hikari:
+      pool-name: wex-pool
+      maximum-pool-size: ${WEX_DB_POOL_MAX:20}
+      minimum-idle: ${WEX_DB_POOL_MIN:5}
+      connection-timeout: 5000
+      validation-timeout: 3000
+
+# Graceful shutdown — 60s drain per deployment-architecture.md §5
+server:
+  shutdown: graceful
+  port: ${WEX_HTTP_PORT:8080}
+
+# Hot-cache + readiness signal config exposed as @ConfigurationProperties("wex")
+wex:
+  cache:
+    exchange-rate:
+      maximum-size: ${WEX_CACHE_MAX_SIZE:2000}
+      expire-after-write-hours: ${WEX_CACHE_TTL_HOURS:24}
+  alias:
+    resource: classpath:currency-aliases.json
+  readiness:
+    db-pool-headroom:
+      # Readiness flips DOWN when active >= max-1 sustained for this many ms
+      # (G6-P0-4 / G4-P1-19; readiness check is consulted by the actuator probe)
+      sustained-saturation-ms: ${WEX_READINESS_DB_POOL_SUSTAINED_MS:5000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,liveness,readiness
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+    db:
+      enabled: true
+
+logging:
+  level:
+    com.example.purchaseconversion: INFO
+    org.springframework: INFO
+    liquibase: WARN

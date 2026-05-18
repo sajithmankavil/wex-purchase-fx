@@ -38,11 +38,14 @@ __pycache__/
 venv/
 .pytest_cache/
 
-# Node
-node_modules/
-.npm/
-.next/
-out/
+# Node — scoped to top-level so they don't shadow legitimate directory names
+# elsewhere in the tree. The unscoped `out/` previously matched
+# `src/main/java/.../application/port/out/` and silently dropped 6 ports
+# from A2's PR #5; restored in B1.
+/node_modules/
+/.npm/
+/.next/
+/out/
 
 # Java
 target/
