@@ -1,0 +1,63 @@
+phase_id: 12-production-approval
+phase_type: signature_procedure   # NOT a bulk-pass evidence gate; distinct from Phase 10 + 11.
+scope: case_study_demonstrative   # per directives/2026-05-18-case-study-scope-clarification.md §2.3
+
+status: complete   # 2026-05-18 — Architect (user Sajith Mankavil) signed §6.1 + §6.2 adjudications + §2.3 conclusion drafted-and-ratified. Phase 12 demonstrative ceremony recorded. Case-study terminal posture achieved. Marker file at .human-approvals/pci-production-approved.txt remains user-only (optional creation per §7); gate file at docs/security/pci-production-readiness-gate.md update remains user-or-dev-territory (optional).
+
+prompt_sha: null          # populate post-hash if needed for audit
+ceremony_sha: null        # populate post-hash on DEMONSTRATIVE-CEREMONY.md commit
+
+# State machine (case-study-specific; NOT the bulk-pass enum):
+#   prompt_received      — reviewer authored 00-prompt + DEMONSTRATIVE-CEREMONY (this state)
+#   ceremony_recorded    — user reviewed; demonstrative dispositions confirmed
+#   marker_created       — user (Architect) optionally created the demonstrative .human-approvals/pci-production-approved.txt
+#   complete             — user confirms phase closure; STATUS.md updated
+#
+# `complete` does NOT mean real production deploy is unblocked. It means the case-study
+# demonstrative ceremony is recorded and the dossier is assessor-ready.
+
+# Inputs to the ceremony
+inputs:
+  - docs/external-review/HITL-CONSOLIDATED-REVIEW.md           # canonical reviewer verdict
+  - docs/security/change-control-pci.md                         # change-control framework
+  - docs/security/pci-production-readiness-gate.md              # operative gate file (currently BLOCKED; Phase 12 flips)
+  - docs/security/pci-dss-control-mapping.md                    # dev-authored 12-req mapping
+  - docs/external-review/phases/10-operational-readiness/       # Phase 10 dossier
+  - docs/external-review/phases/11-pci-security-readiness/      # Phase 11 dossier
+
+# Demonstrative-ceremony participants
+signatories:
+  architect: Sajith Mankavil   # user role for the case study
+  sre: demonstrative
+  security_secarch: demonstrative
+  compliance: demonstrative
+
+# Blocking-for-prod adjudications required (case-study demonstrative)
+blocking_for_prod_adjudications:
+  - id: F-15-idempotency-key
+    severity: HIGH (compliance posture)
+    source: failure-modes-and-resilience.md §F-15 + Phase 10 30-review §C1
+    adjudication_options: [implement-in-13-POST-chunk, waive-with-documented-mitigation, accept-as-known-risk]
+    case_study_position: documented in HITL-CONSOLIDATED-REVIEW §5.2 — deferred to signatory adjudication
+  - id: Req-8-identity-origin-OQ-010
+    severity: HIGH (regulatory posture)
+    source: pci-dss-control-mapping.md Req 8.2.1 + Phase 11 bundle §3 risk #1
+    adjudication_options: [implement-gateway-binding, waive-pending-platform-provisioning, accept-as-Phase-12-prereq]
+    case_study_position: documented as Phase-12-equivalent (case-study-out-of-scope per case-study scope directive §2.2)
+
+# Phase 12 equivalents inherited from HITL consolidated review
+phase_12_equivalent_items: 19   # see HITL-CONSOLIDATED-REVIEW §5.2
+case_study_disposition_default: out-of-scope-documented-procedure-is-evidence
+
+# Marker file disposition
+marker_file_path: .human-approvals/pci-production-approved.txt
+marker_file_authority: user_architect_only   # reviewer policy-denied; HITL-gate directive Step 3.5
+marker_file_required_for_case_study: false   # ceremony record sufficient
+marker_file_annotation_required: "CASE STUDY DEMONSTRATIVE — NOT VALID FOR REAL PRODUCTION DEPLOYMENT"
+
+# Cross-references
+hitl_consolidated_review: docs/external-review/HITL-CONSOLIDATED-REVIEW.md
+hitl_consolidated_review_verdict: READY_FOR_CASE_STUDY_HITL_WITH_FINDINGS
+
+# Phase 12 does not pre-stage Phase 13 work; Phase 13 is closed.
+next_phase: null
