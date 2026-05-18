@@ -76,6 +76,17 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
     /** Resilience4j registries advertise the named instances configured in application.yml. */
     private static final String INSTANCE_NAME = "treasuryClient";
 
+    /**
+     * Defense-in-depth at the Treasury filter trust boundary (B2 30-review §3
+     * carry-forward — {@code treasury-filter-boundary-whitelist-assertion}).
+     * Canonical Treasury descriptors are A-Z / a-z / 0-9 / space / hyphen /
+     * parentheses; comma and colon are reserved by the Fiscal Data API filter
+     * grammar and would split a single filter expression into multiple if
+     * smuggled through.
+     */
+    private static final java.util.regex.Pattern DESCRIPTOR_WHITELIST =
+            java.util.regex.Pattern.compile("^[A-Za-z][A-Za-z0-9 ()\\-]+$");
+
     private final RestClient restClient;
     private final SingleFlightGate singleFlightGate;
     private final ExchangeRateRepositoryPort exchangeRateRepository;
@@ -114,6 +125,12 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
         Objects.requireNonNull(windowLower, "windowLower must not be null");
         Objects.requireNonNull(windowUpper, "windowUpper must not be null");
 
+        // Defense-in-depth filter-boundary check (B2 30-review §3).
+        if (!DESCRIPTOR_WHITELIST.matcher(currency.value()).matches()) {
+            throw new UpstreamBadResponseException(
+                    "schema_invalid:currency_descriptor_boundary:" + currency.value());
+        }
+
         SingleFlightGate.Key key = SingleFlightGate.Key.forTransactionDate(currency, windowUpper);
         FetchHolder holder = new FetchHolder();
 
@@ -137,6 +154,14 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
      * Wraps the raw HTTP call with Bulkhead → Retry → CircuitBreaker. Returns a
      * parsed-and-validated list of rates; persists them via the repository.
      * Resilience4j failures are mapped to the application's domain exception types.
+     *
+     * <p>Emits one structured audit-log line per call (B2 30-review §2
+     * carry-forward — {@code treasury-client-audit-log-on-emit}). Fields:
+     * {@code currency} (non-sensitive), {@code windowLower}/{@code windowUpper},
+     * {@code outcome} (one of {@code success / circuit_open / bulkhead_full /
+     * http_5xx:&lt;n&gt; / http_4xx:&lt;n&gt; / io:&lt;reason&gt; /
+     * schema_invalid:&lt;reason&gt; / rate_sanity:&lt;reason&gt;}), {@code latencyMs},
+     * and the MDC's correlation-id hash (populated by {@code CorrelationIdFilter}).
      */
     private List<ExchangeRate> resilientFetch(
             CurrencyDescriptor currency, LocalDate windowLower, LocalDate windowUpper) {
@@ -144,20 +169,49 @@ public class TreasuryClientAdapter implements TreasuryClientPort {
         chain = CircuitBreaker.decorateSupplier(circuitBreaker, chain);
         chain = Retry.decorateSupplier(retry, chain);
         chain = Bulkhead.decorateSupplier(bulkhead, chain);
+        long started = System.nanoTime();
         try {
-            return chain.get();
+            List<ExchangeRate> out = chain.get();
+            audit(currency, windowLower, windowUpper, "success", started, null);
+            return out;
         } catch (CallNotPermittedException e) {
+            audit(currency, windowLower, windowUpper, "circuit_open", started, e);
             throw new UpstreamUnavailableException("circuit_open", e);
         } catch (BulkheadFullException e) {
+            audit(currency, windowLower, windowUpper, "bulkhead_full", started, e);
             throw new UpstreamUnavailableException("bulkhead_full", e);
-        } catch (UpstreamBadResponseException | UpstreamUnavailableException e) {
+        } catch (UpstreamBadResponseException e) {
+            audit(currency, windowLower, windowUpper, e.getReason(), started, e);
+            throw e;
+        } catch (UpstreamUnavailableException e) {
+            audit(currency, windowLower, windowUpper, e.getReason(), started, e);
             throw e;
         } catch (HttpServerErrorException e) {
-            throw new UpstreamUnavailableException("http_5xx:" + e.getStatusCode().value(), e);
+            String reason = "http_5xx:" + e.getStatusCode().value();
+            audit(currency, windowLower, windowUpper, reason, started, e);
+            throw new UpstreamUnavailableException(reason, e);
         } catch (HttpClientErrorException e) {
-            throw new UpstreamBadResponseException("http_4xx:" + e.getStatusCode().value(), e);
+            String reason = "http_4xx:" + e.getStatusCode().value();
+            audit(currency, windowLower, windowUpper, reason, started, e);
+            throw new UpstreamBadResponseException(reason, e);
         } catch (ResourceAccessException e) {
-            throw new UpstreamUnavailableException("io:" + e.getMessage(), e);
+            String reason = "io:" + e.getMessage();
+            audit(currency, windowLower, windowUpper, reason, started, e);
+            throw new UpstreamUnavailableException(reason, e);
+        }
+    }
+
+    private void audit(
+            CurrencyDescriptor currency, LocalDate windowLower, LocalDate windowUpper,
+            String outcome, long startedNanos, Throwable err) {
+        long latencyMs = (System.nanoTime() - startedNanos) / 1_000_000L;
+        if (err == null) {
+            LOG.info("treasury.client.call currency={} windowLower={} windowUpper={} outcome={} latencyMs={}",
+                    currency.value(), windowLower, windowUpper, outcome, latencyMs);
+        } else {
+            LOG.warn("treasury.client.call currency={} windowLower={} windowUpper={} outcome={} latencyMs={} errClass={}",
+                    currency.value(), windowLower, windowUpper, outcome, latencyMs,
+                    err.getClass().getSimpleName());
         }
     }
 

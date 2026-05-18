@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured JSON logging (component-design.md §7; ADR-0001 D-12;
+  observability.md). Mandatory MDC fields are picked up automatically
+  (correlationId, correlationIdHash, requestId, traceId, spanId — the
+  latter two are populated by the OpenTelemetry Spring Boot starter
+  when present).
+
+  PII guard: the `description` field is NEVER logged as plain text by
+  the project's own code paths. The HMAC `vN:` prefix lives in the
+  observability.DescriptionHasher; logs only carry `descriptionHash`
+  and `descriptionLength` per AC-032 / AC-032b.
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="default,dev,test,local">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %-5level [%X{correlationId:--}] %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="prod,staging,ci">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdc>true</includeMdc>
+                <fieldNames>
+                    <timestamp>timestamp</timestamp>
+                    <message>message</message>
+                    <logger>logger</logger>
+                    <thread>thread</thread>
+                    <levelValue>[ignore]</levelValue>
+                </fieldNames>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.example.purchaseconversion" level="INFO"/>
+    <logger name="liquibase" level="WARN"/>
+    <logger name="org.springframework" level="INFO"/>
+</configuration>
