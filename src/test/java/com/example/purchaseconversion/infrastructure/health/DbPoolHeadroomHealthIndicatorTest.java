@@ -96,7 +96,10 @@ class DbPoolHeadroomHealthIndicatorTest {
         Health stillUp = indicator.health();
         assertThat(stillUp.getStatus()).isEqualTo(Status.UP);
 
-        clock.advance(Duration.ofMillis(1100));
+        // Need to cross the 5000ms threshold from the NEW window-start (set at the
+        // previous health() call when re-saturation was observed). Total wall-time
+        // since re-saturation: 5100 ms > 5000 ms threshold -> DOWN.
+        clock.advance(Duration.ofMillis(5100));
         Health nowDown = indicator.health();
         assertThat(nowDown.getStatus()).isEqualTo(Status.DOWN);
     }

@@ -84,12 +84,19 @@ class SingleFlightGateTest {
         AtomicInteger upstreamCalls = new AtomicInteger();
         AtomicBoolean persisted = new AtomicBoolean(false);
         CountDownLatch winnerHolds = new CountDownLatch(1);
+        // Signals that the winner has acquired the gate AND entered its lambda.
+        // We wait deterministically for this rather than Thread.sleep — a slow CI
+        // runner can leave the winner unscheduled long enough that a loser becomes
+        // a second winner (race observed on the first real CI run that exercised
+        // mvn verify; previously the suite never ran on GitHub-hosted runners).
+        CountDownLatch winnerInstalled = new CountDownLatch(1);
 
         ExecutorService exec = Executors.newFixedThreadPool(3);
         try {
             Future<?> winner = exec.submit(() -> gate.runOnce(
                     key,
                     () -> {
+                        winnerInstalled.countDown();
                         upstreamCalls.incrementAndGet();
                         try {
                             winnerHolds.await(2, TimeUnit.SECONDS);
@@ -100,8 +107,10 @@ class SingleFlightGateTest {
                         return null;
                     },
                     persisted::get));
-            // Give the winner a chance to install its state.
-            Thread.sleep(50);
+            // Deterministic wait — winner is now inside its lambda; the gate state
+            // is installed; loser submissions are guaranteed to take the loser path.
+            assertThat(winnerInstalled.await(2, TimeUnit.SECONDS)).isTrue();
+
             Future<?> loser1 = exec.submit(() -> gate.runOnce(key,
                     () -> { upstreamCalls.incrementAndGet(); return null; },
                     persisted::get));

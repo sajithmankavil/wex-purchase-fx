@@ -45,7 +45,9 @@ class TreasuryFilterWhitelistTest {
                 "test/0 (contact:test)");
     }
 
-    @ParameterizedTest(name = "{0}")
+    // name="input=[{0}]" so an empty-string value source still produces a non-blank
+    // displayName (JUnit 5 rejects blank displayNames with PreconditionViolationException).
+    @ParameterizedTest(name = "input=[{0}]")
     @ValueSource(strings = {
             // Comma is the filter-expression separator on Treasury's Fiscal Data API.
             "Canada,Dollar",
@@ -90,7 +92,9 @@ class TreasuryFilterWhitelistTest {
                 .hasMessageContaining("schema_invalid:currency_descriptor_boundary");
     }
 
-    @ParameterizedTest(name = "{0}")
+    // name="input=[{0}]" so an empty-string value source still produces a non-blank
+    // displayName (JUnit 5 rejects blank displayNames with PreconditionViolationException).
+    @ParameterizedTest(name = "input=[{0}]")
     @ValueSource(strings = {
             // Real Treasury descriptors.
             "Canada-Dollar",
