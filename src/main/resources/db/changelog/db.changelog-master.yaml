@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: changesets/v1-purchase-transactions.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changesets/v2-exchange-rates.yaml
+      relativeToChangelogFile: true

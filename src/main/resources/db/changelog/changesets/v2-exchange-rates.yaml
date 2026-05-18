@@ -1,0 +1,73 @@
+databaseChangeLog:
+  - changeSet:
+      id: v2-create-exchange-rates
+      author: wex-purchase-fx
+      labels: schema,phase-13,chunk-b1
+      comment: >
+        FR-003 — Treasury exchange-rate storage. Versioned by effective_date
+        (ADR-0001 D-3; Phase-4 G4-P1-4). Composite PK; no surrogate id.
+        Scale-6 normalization (G4-P0-3). Sanity bound 1e30 (G4-P1-3).
+        Per data-model.md §4. Rollback class C.
+      changes:
+        - createTable:
+            tableName: exchange_rates
+            columns:
+              - column:
+                  name: country_currency_desc
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: record_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: effective_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: exchange_rate
+                  type: DECIMAL(19,6)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: source
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fetched_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: exchange_rates
+            columnNames: country_currency_desc, record_date, effective_date
+            constraintName: pk_exchange_rates
+        - sql:
+            comment: Strict CHECK constraints per data-model.md §4 (Phase-4 refined)
+            sql: >
+              ALTER TABLE exchange_rates
+              ADD CONSTRAINT chk_rate_positive CHECK (exchange_rate > 0);
+              ALTER TABLE exchange_rates
+              ADD CONSTRAINT chk_rate_sanity CHECK (exchange_rate <= 1e30);
+        - createIndex:
+            tableName: exchange_rates
+            indexName: ix_exchange_rates_lookup
+            columns:
+              - column:
+                  name: country_currency_desc
+              - column:
+                  name: record_date
+                  descending: true
+              - column:
+                  name: effective_date
+                  descending: true
+      rollback:
+        - dropIndex:
+            tableName: exchange_rates
+            indexName: ix_exchange_rates_lookup
+        - dropTable:
+            tableName: exchange_rates
