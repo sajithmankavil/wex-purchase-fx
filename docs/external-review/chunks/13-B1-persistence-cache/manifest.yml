@@ -3,8 +3,8 @@ status: summary_posted
 prompt_sha: 87bc26e8bb31f6f4ecc95ff6b7277d04bb86c166
 summary_sha: e9c723524e87b9766ef91fae3aab25a9fd4f6b9c
 review_sha: null
-pr: null
-ci_url: null
+pr: 7
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26010337208
 deviations_open: []
 review_conditions: [pom-coverage-mutation-extension-for-application, hot-cache-upsert-invalidation-contract]  # absorbed from A2; close at B1's 30-review
 follow_ups: []
