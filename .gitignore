@@ -16,6 +16,10 @@ service-account*.json
 # must not carry them.)
 .human-approvals/*.txt
 
+# Claude Code runtime locks — process-local; never in git.
+# (Phase 13 Chunk B2 lesson — caught at 30-review.md §1.)
+.claude/scheduled_tasks.lock
+
 # OS/editor
 .DS_Store
 .idea/
