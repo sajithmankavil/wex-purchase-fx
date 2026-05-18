@@ -1,16 +1,27 @@
 chunk_id: 13-C3-openapi-cicd
-status: summary_posted   # 2026-05-18 — S2 + S3 + 3 MED carry-forwards complete (all 3 review_conditions ADDRESSED); ~+1,200/-86 net within 1,500 soft target; PR to follow on push
+status: under_review   # 2026-05-18 — reviewer verdict ACCEPTED WITH CONDITIONS in 30-review.md. All 3 MED carry-forwards CLOSED; 5 new findings (1 MED F1, 1 MED F2, 3 LOW F3-F5) routed forward to Phase 10/11/12 bulk-passes; pre-merge: PR # + CI green; flip status: under_review → accepted post-merge.
 prompt_sha: 307ea9208cf6a33c6f1cece74f8eb6ee5332bcf6
 summary_sha: null        # set by `git hash-object 20-summary.md` once committed
-review_sha: null
+review_sha: null         # set by `git hash-object 30-review.md` once committed
 pr: null                 # set to 11 once PR opens
 ci_url: null             # set once CI run lands
 deviations_open: []
 review_conditions:
-  - problem-detail-handler-structured-arguments-migration    # carry-forward from C2 30-review §3 (MED) — migrate ProblemDetailExceptionHandler.{onInvalidCurrency, onMalformedId} log emissions to StructuredArguments.kv
-  - metrics-catalog-increment-wiring-through-adapters        # carry-forward from C2 30-review §4 (MED) — wire treasuryRequest/singleFlightLoserOutcome/aliasDriftDetected into TreasuryClientAdapter::audit, SingleFlightGate, ProblemDetailExceptionHandler::onInvalidCurrency
-  - rate-revision-end-to-end-it-exercises-versioned-upsert   # carry-forward from C2 30-review-v2 §2 (MED) — fix RateRevisionEndToEndIT: remove interstitial DELETE FROM exchange_rates; assert (a) both rows persist (count=2 keyed on currency+record_date), (b) HTTP response returns the latest effective_date row, (c) hot-cache invalidates on upsert. Original test ships but does not exercise AC-026b — DELETE bypasses versioned-upsert
-follow_ups: []
+  # All 3 closed at C3 — preserved for audit trail.
+  - problem-detail-handler-structured-arguments-migration    # CLOSED — both onMalformedId + onInvalidCurrency emit via StructuredArguments.kv (verified at 3b37753)
+  - metrics-catalog-increment-wiring-through-adapters        # CLOSED — treasuryRequest (8 paths), singleFlightLoserOutcome (5 paths), aliasDriftDetected wired (verified at 3b37753)
+  - rate-revision-end-to-end-it-exercises-versioned-upsert   # CLOSED — DELETE removed; TTL=0 forces cache refresh; 3 v2-spec assertions present (verified at 3b37753). LOW F4 follow-up routes to Phase 10 (optional cache-invalidation-on-upsert variant).
+follow_ups:
+  # C3 30-review findings routed forward to phase bulk-passes per directives/2026-05-18-phase-10-11-bulk-pass-protocol.md.
+  # Phase 10 (Operational Readiness):
+  # - spectral-lint-node-setup-unconditional                 # MED F2 part 1 — CLOSED in hygiene commit on this branch per 30-review §6 step 3 ("OPTIONAL but strongly recommended"); dropped from Phase 10 carry-forward list.
+  - oasdiff-vs-live-oas-pending-mvn                          # MED F2 part 2 — paired with M7 Maven runner provisioning
+  - rate-revision-end-to-end-it-cache-invalidation-variant   # LOW F4 — optional second test variant exercising cache-invalidation contract through HTTP boundary
+  - malformed-identifier-exception-message-redaction         # LOW F5 — defense-in-depth: drop raw input from exception super-message
+  # Phase 11 (PCI Security Readiness):
+  - security-workflow-gating-activation                      # MED F1 — flip Semgrep/OWASP-DC/Trivy from advisory to blocking on HIGH/CRITICAL
+  # Phase 12 (Production Cutover):
+  - deploy-workflow-marker-freshness-check                   # LOW F3 — add "newer than deployed commit" check on deploy-staging.yml + deploy-prod.yml
 supersedes_part_of: 13-C2-observability-cicd   # C3 inherits S2 + S3 from the original C2 scope
 next_chunk: null   # FINAL Phase-13 chunk; after merge, Phase 13 closes and Phase 10 begins via the bulk-pass protocol (directives/2026-05-18-phase-10-11-bulk-pass-protocol.md)
 depends_on: [13-C2-observability-cicd]
