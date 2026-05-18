@@ -1,12 +1,13 @@
 chunk_id: 13-C2-observability-cicd
-status: under_review   # 2026-05-18 — reviewer verdict ACCEPTED WITH CONDITIONS in 30-review.md; all 8 narrowed-scope review_conditions closed (incl. §4.7 NEW MED); 2 partial-closure carry-forwards (§3 + §4) routed to C3; pre-merge protocol bend on PR# (§6) requires PR open + CI green before merge; flip to `accepted` post-merge per forward-motion mechanical transition.
+status: accepted   # 2026-05-18 — PR #10 merged via rebase; substantive landed at c92e146 (+ a242e27 docs commit); mechanical under_review → accepted flip per 30-review §6 + forward-motion bias.
 prompt_sha: ee426cf1e0e807731623d671cecf51f5149484e2
 clarification_sha: null   # set by `git hash-object 15-clarification.md` once committed
 deviation_sha: e8f719401955cc4d214538cfa1657b009b53823a
 summary_sha: 601b48eeb7d992cb5b6eeb9aac1cfa2f2046aa28
-review_sha: null
-pr: null
-ci_url: null
+review_sha: null   # set by `git hash-object 30-review.md` if/when canonicalised
+pr: 10
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26016451000   # CI green at HEAD prior to merge
+merged_at: c92e146   # substantive C2 commit on main post-rebase-merge
 deviations_open: []   # capacity-overage-proposed-c2-c3-split — resolved by 15-clarification.md option (a) acceptance
 review_conditions:
   # 8 carry-forwards from 13-C-api-observability/30-review.md §4 (these are intake items for THIS chunk's PR, not carry-forwards
