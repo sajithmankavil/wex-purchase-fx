@@ -1,10 +1,11 @@
 chunk_id: 13-C3-openapi-cicd
-status: under_review   # 2026-05-18 — reviewer verdict ACCEPTED WITH CONDITIONS in 30-review.md. All 3 MED carry-forwards CLOSED; 5 new findings (1 MED F1, 1 MED F2, 3 LOW F3-F5) routed forward to Phase 10/11/12 bulk-passes; pre-merge: PR # + CI green; flip status: under_review → accepted post-merge.
+status: accepted   # 2026-05-18 — PR #11 merged via rebase; substantive at 5e77ac0 + 3 hygiene at 5ca15e6/cf1b9a4/d06b552. Mechanical under_review → accepted flip per 30-review §6 + forward-motion bias. F2 part 1 closed pre-merge in hygiene commit per §6 step 3; F2 part 2 + F4 + F5 route to Phase 10; F1 to Phase 11; F3 to Phase 12.
 prompt_sha: 307ea9208cf6a33c6f1cece74f8eb6ee5332bcf6
 summary_sha: null        # set by `git hash-object 20-summary.md` once committed
 review_sha: null         # set by `git hash-object 30-review.md` once committed
-pr: null                 # set to 11 once PR opens
-ci_url: null             # set once CI run lands
+pr: 11
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26016915239   # CI green on rebased C3 at HEAD prior to merge
+merged_at: d06b552       # final hygiene commit; PR #11 contained 4 commits (5e77ac0 + 5ca15e6 + cf1b9a4 + d06b552)
 deviations_open: []
 review_conditions:
   # All 3 closed at C3 — preserved for audit trail.
@@ -25,4 +26,4 @@ follow_ups:
 supersedes_part_of: 13-C2-observability-cicd   # C3 inherits S2 + S3 from the original C2 scope
 next_chunk: null   # FINAL Phase-13 chunk; after merge, Phase 13 closes and Phase 10 begins via the bulk-pass protocol (directives/2026-05-18-phase-10-11-bulk-pass-protocol.md)
 depends_on: [13-C2-observability-cicd]
-depends_on_satisfied: in-review   # C2 is summary_posted (PR #10 open) but not yet merged; implementer branched off c2 branch and will rebase on main post-C2-merge per forward-motion bias
+depends_on_satisfied: true   # C2 (PR #10) merged at c92e146; C3 rebased on new main post-merge; forward-motion-bias mid-review branching pattern closed cleanly (no rebase conflicts — old C2 commits skipped by patch-id during rebase)
