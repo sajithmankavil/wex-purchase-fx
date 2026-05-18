@@ -7,7 +7,11 @@ review_sha: null
 pr: null
 ci_url: null
 deviations_open: []
-review_conditions: [api-layer-currency-input-hashing-on-emit]  # carry-over from A2
+review_conditions:
+  - api-layer-currency-input-hashing-on-emit         # carry-over from A2 — see chunks/13-C-api-observability/15-clarification.md
+  - treasury-client-audit-log-on-emit                # carry-over from B2 30-review §2 (MED) — PCI outbound audit on TreasuryClientAdapter
+  - treasury-filter-boundary-whitelist-assertion     # carry-over from B2 30-review §3 (LOW) — defense-in-depth at Treasury filter trust boundary
+  - pitest-conversionservice-per-class-execution     # rolled forward from B1 follow_ups per B2 30-review §8 (with reviewer concurrence); B1 manifest still references for audit trail
 follow_ups: []
 next_chunk: null   # final chunk in Phase 13; after merge, Phase 13 is closed; next phase is 10 (Operational Readiness Gate)
 depends_on: [13-B2-treasury-singleflight]   # rewired from 13-B-infrastructure on 2026-05-17 — B was superseded by B1+B2 split (see chunks/13-B-infrastructure/30-review.md)

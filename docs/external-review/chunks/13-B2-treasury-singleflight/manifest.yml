@@ -1,13 +1,13 @@
 chunk_id: 13-B2-treasury-singleflight
-status: summary_posted
+status: under_review   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flip to `accepted` on merge per forward-motion mechanical-transition pattern. One pre-merge condition (§1 lock-file hygiene); two carry-forwards routed to Chunk C.
 prompt_sha: 250e7ed43ad1e55ea3c73597c0afc499941530a3
 summary_sha: 8da0fa97170361f486997c383bf17b0dcf0f9b8f
-review_sha: null
+review_sha: 5fb95e55eecdedc3ab461c3f7eb30a2a642fc90a
 pr: 8
 ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26011521421
 deviations_open: []
-review_conditions: []
-follow_ups: []
+review_conditions: [add-claude-lock-to-gitignore]   # 30-review.md §1 — pre-merge hygiene fix; ~3 line `.gitignore` + `git rm --cached`
+follow_ups: []   # B2's own follow-ups: none. Two carry-forwards routed to C (audit-log + filter-boundary whitelist) and one B1 follow-up rolled into C (pitest-conversionservice-per-class). All tracked on C's manifest.
 supersedes_part_of: 13-B-infrastructure   # B1 + B2 jointly supersede the original B chunk
 next_chunk: 13-C-api-observability
 depends_on: [13-B1-persistence-cache]
