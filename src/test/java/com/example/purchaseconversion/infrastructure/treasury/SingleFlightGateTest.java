@@ -136,12 +136,17 @@ class SingleFlightGateTest {
         SingleFlightGate gate = new SingleFlightGate(10_000L, 50L);
         SingleFlightGate.Key key = SingleFlightGate.Key.forTransactionDate(CAD, LocalDate.of(2026, 5, 1));
         CountDownLatch winnerHolds = new CountDownLatch(1);
+        // Deterministic "winner has installed gate state AND entered its lambda" signal —
+        // replaces Thread.sleep(50) which was unreliable on slow CI runners (same race
+        // pattern as twoLosersOneWinner; surfaced by the first real CI run).
+        CountDownLatch winnerInstalled = new CountDownLatch(1);
 
         ExecutorService exec = Executors.newFixedThreadPool(2);
         try {
             Future<?> winner = exec.submit(() -> {
                 try {
                     return gate.runOnce(key, () -> {
+                        winnerInstalled.countDown();
                         try { winnerHolds.await(2, TimeUnit.SECONDS); }
                         catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                         throw new UpstreamUnavailableException("timeout");
@@ -150,7 +155,7 @@ class SingleFlightGateTest {
                     return null;  // swallow — we're asserting the loser's behaviour
                 }
             });
-            Thread.sleep(50);
+            assertThat(winnerInstalled.await(2, TimeUnit.SECONDS)).isTrue();
 
             Future<UpstreamUnavailableException> loser = exec.submit(() -> {
                 try {
