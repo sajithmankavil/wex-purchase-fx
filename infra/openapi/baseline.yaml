@@ -249,5 +249,5 @@ components:
           example: "/api/v1/purchases"
         details:
           type: object
-          description: Error-specific details map; shape varies by errorCode. PII fields (id, currency) are HASHED via HMAC vN: prefix per AC-032b + C 30-review §4.7.
+          description: "Error-specific details map; shape varies by errorCode. PII fields (id, currency) are HASHED via HMAC vN: prefix per AC-032b + C 30-review §4.7."
           additionalProperties: true

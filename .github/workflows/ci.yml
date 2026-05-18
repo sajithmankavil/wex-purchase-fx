@@ -20,12 +20,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Set up Node if present
-        if: hashFiles('package.json') != ''
+      # C3 30-review F2 part 1 — unconditional Node 20 setup so the Spectral lint step
+      # actually runs in CI (the prior conditional skipped because the repo has no
+      # package.json). Without this, the Spectral step printed "skipping" and exited 0,
+      # making the OAS lint gate performative rather than substantive.
+      - name: Set up Node 20 (for Spectral lint)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install Node deps
         if: hashFiles('package-lock.json') != ''
