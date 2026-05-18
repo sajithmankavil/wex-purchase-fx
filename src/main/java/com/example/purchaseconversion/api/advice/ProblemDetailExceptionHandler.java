@@ -14,6 +14,7 @@ import com.example.purchaseconversion.observability.MetricsCatalog;
 import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -65,12 +66,16 @@ public class ProblemDetailExceptionHandler {
     private final DescriptionHasher hasher;
     private final MetricsCatalog metrics;
 
+    @Autowired
     public ProblemDetailExceptionHandler(DescriptionHasher hasher, MetricsCatalog metrics) {
         this.hasher = hasher;
         this.metrics = metrics;
     }
 
-    /** Test-only constructor (no metrics wiring). */
+    /**
+     * Test-only constructor (no metrics wiring).
+     * Not annotated {@code @Autowired} so Spring chooses the 2-arg constructor at runtime.
+     */
     public ProblemDetailExceptionHandler(DescriptionHasher hasher) {
         this(hasher, null);
     }
