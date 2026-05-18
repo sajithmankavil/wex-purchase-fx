@@ -129,17 +129,17 @@ public class SingleFlightGate {
         }
         LOG.info("single_flight.shutdown.start gates={}", gates.size());
         UpstreamUnavailableException reason = new UpstreamUnavailableException("shutdown");
-        gates.forEach((key, state) -> state.outcome.compareAndSet(null, WinnerOutcome.failure(reason)));
+        gates.forEach((key, state) -> state.outcome.compareAndSet(null, WinnerOutcome.failed(reason)));
         gates.clear();
     }
 
     private <T> Outcome runAsWinner(Key key, State state, Supplier<T> winnerAction) {
         try {
             winnerAction.get();
-            state.outcome.set(WinnerOutcome.success());
+            state.outcome.set(WinnerOutcome.ok());
             return Outcome.WINNER_SUCCESS;
         } catch (RuntimeException e) {
-            state.outcome.set(WinnerOutcome.failure(e));
+            state.outcome.set(WinnerOutcome.failed(e));
             throw e;
         } finally {
             gates.remove(key, state);
@@ -225,13 +225,21 @@ public class SingleFlightGate {
         final AtomicReference<WinnerOutcome> outcome = new AtomicReference<>();
     }
 
-    /** Final outcome shape recorded by the winner. */
+    /**
+     * Final outcome shape recorded by the winner. Record components are
+     * {@code success} (boolean) and {@code failure} (RuntimeException, nullable
+     * when success is true). The static factories are named {@code ok()} +
+     * {@code failed(e)} to avoid colliding with the implicit public component
+     * accessors — Java records reject static methods that share a name with a
+     * component accessor unless the visibility matches exactly, and giving the
+     * factories distinct names is clearer at call sites anyway.
+     */
     private record WinnerOutcome(boolean success, RuntimeException failure) {
-        static WinnerOutcome success() {
+        static WinnerOutcome ok() {
             return new WinnerOutcome(true, null);
         }
 
-        static WinnerOutcome failure(RuntimeException e) {
+        static WinnerOutcome failed(RuntimeException e) {
             return new WinnerOutcome(false, Objects.requireNonNull(e, "failure must not be null"));
         }
     }
