@@ -19,6 +19,7 @@ import com.example.purchaseconversion.domain.Purchase;
 import com.example.purchaseconversion.domain.PurchaseId;
 import com.example.purchaseconversion.observability.DescriptionHasher;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,7 +61,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * production wiring (sans the rate-limit filter, which is exercised by
  * RateLimitOrderingIT in the integration test path).
  */
-@WebMvcTest(PurchaseController.class)
+// addFilters=false disables Spring's filter chain in the slice; without it, the
+// component-scanned WexRateLimiterFilter pulls in a RateLimiterRegistry dependency
+// the WebMvcTest slice doesn't provide. The filter's behaviour is covered by
+// WexRateLimiterFilterTest separately; this slice is for controller + advice tests.
+@WebMvcTest(controllers = PurchaseController.class, addFilters = false)
 @Import({ContentGuard.class, ContentGuardAdvice.class, ProblemDetailExceptionHandler.class,
         PurchaseControllerWebMvcTest.HasherConfig.class})
 class PurchaseControllerWebMvcTest {
@@ -71,6 +76,9 @@ class PurchaseControllerWebMvcTest {
     @MockBean private RegisterPurchaseUseCase registerPurchase;
     @MockBean private RetrievePurchaseUseCase retrievePurchase;
     @MockBean private ConvertPurchaseUseCase convertPurchase;
+    // Satisfies WexRateLimiterFilter's constructor (the filter is component-scanned
+    // by the slice but isn't applied — addFilters=false above disables the chain).
+    @MockBean private RateLimiterRegistry rateLimiterRegistry;
 
     private static final String VALID_V7_ID = newV7Id();
 

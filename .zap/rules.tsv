@@ -1,0 +1,13 @@
+# OWASP ZAP baseline-scan rule overrides for WEX Purchase FX.
+# Format: <rule-id>\t<action>\t<comment>
+# Actions: IGNORE (mute), WARN (advisory), FAIL (block scan).
+#
+# Tuned for a JSON API service with no UI; baseline scan defaults assume an HTML
+# app and flag things that don't apply (e.g., CSP on a JSON-only endpoint).
+
+10015	IGNORE	(Incomplete or No Cache-control Header) — JSON endpoint; cache-control is set per RFC 9111 on the response
+10020	IGNORE	(Missing Anti-clickjacking Header) — no HTML responses; clickjacking N/A
+10038	IGNORE	(CSP Header Not Set) — no HTML responses; CSP N/A for JSON-only API
+10063	IGNORE	(Permissions Policy Header Not Set) — JSON-only API; Permissions-Policy N/A
+10096	IGNORE	(Timestamp Disclosure - Unix) — server's correlation-id contains a timestamp by design (RFC 4122 UUID v7)
+10109	IGNORE	(Modern Web Application) — single-page check; service is JSON API
