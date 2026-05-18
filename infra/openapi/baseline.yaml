@@ -1,0 +1,253 @@
+openapi: 3.1.0
+info:
+  title: WEX Purchase Currency Conversion Service
+  description: |
+    Stores USD purchase transactions and retrieves them converted via the U.S.
+    Treasury Reporting Rates of Exchange API. Out-of-CDE PCI Tier-1 hygiene.
+
+    The OpenAPI document is the **regression baseline** for the `oasdiff` CI
+    gate (Chunk C3 §S2). Drift against this baseline fails CI unless the change
+    is explicitly versioned via an ADR + checked-in update.
+  version: 0.1.0-SNAPSHOT
+  contact:
+    name: Service Owner
+    email: ops@example.com
+servers:
+  - url: http://localhost:8080
+    description: Local
+tags:
+  - name: Purchases
+    description: Stored USD purchase transactions and Treasury-driven currency conversion (FR-001..FR-003).
+paths:
+  /api/v1/purchases:
+    post:
+      tags: [Purchases]
+      operationId: createPurchase
+      summary: Register a USD purchase
+      description: |
+        FR-001 — stores a purchase with server-generated UUID v7 id, returning 201 Created.
+        Bean Validation enforces description ≤ 50 chars + scale-2 amount; ContentGuard
+        rejects PAN-shaped descriptions (AC-010b/c/d/e). Application enforces
+        transactionDate ≤ today.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseRequest"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: URI of the newly-created purchase resource.
+              schema: { type: string, format: uri }
+            X-Correlation-Id:
+              description: Server-bound correlation id (svc-instance-prefix + client value or generated UUID).
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseResponse"
+        "400":
+          description: VALIDATION_FAILED | PAN_PATTERN_DETECTED
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "422":
+          description: FUTURE_DATE
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "429":
+          description: RATE_LIMITED
+          headers:
+            Retry-After:
+              description: Seconds to wait before retry; default 1s per api-contracts.md §7.
+              schema: { type: integer }
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "500":
+          description: INTERNAL_ERROR
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+  /api/v1/purchases/{id}:
+    get:
+      tags: [Purchases]
+      operationId: retrievePurchase
+      summary: Retrieve a stored purchase
+      description: FR-002 — returns the stored purchase by UUID v7 id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase UUID v7 in canonical 8-4-4-4-12 hex form
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PurchaseResponse" }
+        "400":
+          description: MALFORMED_IDENTIFIER
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "404":
+          description: PURCHASE_NOT_FOUND
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+  /api/v1/purchases/{id}/conversion:
+    get:
+      tags: [Purchases]
+      operationId: convertPurchase
+      summary: Convert a stored purchase to a target currency
+      description: |
+        FR-003 — applies the 6-month rate-selection rule (ADR-0001 D-5) and returns
+        a scale-6 exchangeRate (G4-P0-3) + scale-2 convertedAmount (HALF_UP per D-6).
+        currency input is dual-mode: ISO-4217 code (e.g., CAD) or canonical Treasury
+        descriptor (e.g., Canada-Dollar).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Purchase UUID v7
+          schema: { type: string }
+        - name: currency
+          in: query
+          required: true
+          description: ISO-4217 code or canonical Treasury descriptor; case-insensitive
+          schema: { type: string }
+          example: CAD
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConversionResponse" }
+              examples:
+                ac-014-scale-6:
+                  summary: AC-014 — scale-6 exchangeRate; HALF_UP convertedAmount
+                  value:
+                    id: "01900000-0000-7000-8000-000000000000"
+                    description: "Coffee"
+                    transactionDate: "2026-05-10"
+                    amountUsd: "123.45"
+                    targetCurrency: "Canada-Dollar"
+                    exchangeRate: "1.370000"
+                    exchangeRateDate: "2026-04-15"
+                    convertedAmount: "169.13"
+        "400":
+          description: MALFORMED_IDENTIFIER | INVALID_CURRENCY
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "422":
+          description: CONVERSION_RATE_NOT_AVAILABLE
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "502":
+          description: UPSTREAM_BAD_RESPONSE
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "503":
+          description: UPSTREAM_UNAVAILABLE
+          headers:
+            Retry-After:
+              description: Seconds to wait before retry; default 300s per api-contracts.md §7.
+              schema: { type: integer }
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+components:
+  schemas:
+    PurchaseRequest:
+      type: object
+      required: [description, transactionDate, amountUsd]
+      properties:
+        description:
+          type: string
+          maxLength: 50
+          example: Coffee
+          description: "Free-text purchase description; ≤ 50 chars; subject to ContentGuard PAN-Luhn + track-data rejection."
+        transactionDate:
+          type: string
+          format: date
+          example: "2026-05-10"
+        amountUsd:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{2}$'
+          example: "123.45"
+    PurchaseResponse:
+      type: object
+      required: [id, description, transactionDate, amountUsd]
+      properties:
+        id:
+          type: string
+          example: "01900000-0000-7000-8000-000000000000"
+        description: { type: string, example: Coffee }
+        transactionDate: { type: string, format: date, example: "2026-05-10" }
+        amountUsd: { type: string, example: "123.45" }
+    ConversionResponse:
+      type: object
+      required: [id, description, transactionDate, amountUsd, targetCurrency, exchangeRate, exchangeRateDate, convertedAmount]
+      properties:
+        id: { type: string, example: "01900000-0000-7000-8000-000000000000" }
+        description: { type: string, example: Coffee }
+        transactionDate: { type: string, format: date, example: "2026-05-10" }
+        amountUsd: { type: string, example: "123.45" }
+        targetCurrency: { type: string, example: "Canada-Dollar" }
+        exchangeRate:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{6}$'
+          example: "1.370000"
+        exchangeRateDate: { type: string, format: date, example: "2026-04-15" }
+        convertedAmount: { type: string, example: "169.13" }
+    ProblemDetail:
+      type: object
+      description: RFC 9457 envelope; every error response uses this shape (AC-T-5).
+      required: [type, title, status, errorCode]
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Problem type URI (https://wex.example.com/problems/{slug}).
+          example: "https://wex.example.com/problems/pan-pattern-detected"
+        title:
+          type: string
+          example: "PAN-shaped content detected"
+        status:
+          type: integer
+          example: 400
+        errorCode:
+          type: string
+          description: Stable WEX error code; clients pattern-match on this.
+          enum:
+            - VALIDATION_FAILED
+            - PAN_PATTERN_DETECTED
+            - FUTURE_DATE
+            - PURCHASE_NOT_FOUND
+            - MALFORMED_IDENTIFIER
+            - INVALID_CURRENCY
+            - CONVERSION_RATE_NOT_AVAILABLE
+            - UPSTREAM_UNAVAILABLE
+            - UPSTREAM_BAD_RESPONSE
+            - RATE_LIMITED
+            - INTERNAL_ERROR
+        instance:
+          type: string
+          description: Request URI that produced the error.
+          example: "/api/v1/purchases"
+        details:
+          type: object
+          description: Error-specific details map; shape varies by errorCode. PII fields (id, currency) are HASHED via HMAC vN: prefix per AC-032b + C 30-review §4.7.
+          additionalProperties: true

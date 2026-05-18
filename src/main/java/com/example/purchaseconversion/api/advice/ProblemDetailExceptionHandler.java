@@ -10,6 +10,8 @@ import com.example.purchaseconversion.application.exception.PurchaseNotFoundExce
 import com.example.purchaseconversion.application.exception.UpstreamBadResponseException;
 import com.example.purchaseconversion.application.exception.UpstreamUnavailableException;
 import com.example.purchaseconversion.observability.DescriptionHasher;
+import com.example.purchaseconversion.observability.MetricsCatalog;
+import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -61,9 +63,16 @@ public class ProblemDetailExceptionHandler {
     private static final URI BASE = URI.create("https://wex.example.com/problems/");
 
     private final DescriptionHasher hasher;
+    private final MetricsCatalog metrics;
 
-    public ProblemDetailExceptionHandler(DescriptionHasher hasher) {
+    public ProblemDetailExceptionHandler(DescriptionHasher hasher, MetricsCatalog metrics) {
         this.hasher = hasher;
+        this.metrics = metrics;
+    }
+
+    /** Test-only constructor (no metrics wiring). */
+    public ProblemDetailExceptionHandler(DescriptionHasher hasher) {
+        this(hasher, null);
     }
 
     // --- Validation paths ---
@@ -126,7 +135,11 @@ public class ProblemDetailExceptionHandler {
     public ResponseEntity<ProblemDetail> onMalformedId(MalformedIdentifierException e) {
         String hashed = hasher.hash(e.getInput());
         int length = e.getInput() == null ? 0 : e.getInput().length();
-        LOG.warn("malformed_identifier.detected idHash={} idLength={}", hashed, length);
+        // C3 §S4 carry-forward — StructuredArguments.kv migration (matches the
+        // currency_alias.drift emission and TreasuryClientAdapter::audit).
+        LOG.warn("malformed_identifier.detected",
+                StructuredArguments.kv("idHash", hashed),
+                StructuredArguments.kv("idLength", length));
         Map<String, Object> idDetails = new LinkedHashMap<>();
         idDetails.put("hash", hashed);
         idDetails.put("length", length);
@@ -143,7 +156,14 @@ public class ProblemDetailExceptionHandler {
     public ResponseEntity<ProblemDetail> onInvalidCurrency(InvalidCurrencyException e) {
         String hashed = hasher.hash(e.getCurrency());
         int length = e.getCurrency() == null ? 0 : e.getCurrency().length();
-        LOG.warn("currency_alias.drift.detected currencyHash={} currencyLength={}", hashed, length);
+        // C3 §S4 carry-forward — StructuredArguments.kv so top-level JSON fields land in the
+        // logstash encoder output (Loki/Splunk/ELK consume them directly without regex).
+        LOG.warn("currency_alias.drift.detected",
+                StructuredArguments.kv("currencyHash", hashed),
+                StructuredArguments.kv("currencyLength", length));
+        if (metrics != null) {
+            metrics.aliasDriftDetected();
+        }
         Map<String, Object> currencyDetails = new LinkedHashMap<>();
         currencyDetails.put("hash", hashed);
         currencyDetails.put("length", length);

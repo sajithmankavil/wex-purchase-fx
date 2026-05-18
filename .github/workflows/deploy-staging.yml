@@ -1,25 +1,67 @@
-name: Deploy Staging
+name: Deploy — staging
+
+# C3 §S3 deploy skeleton. Manual-only. Gated on
+# `.human-approvals/staging-approved.txt` existing AND containing the literal
+# token `APPROVED_FOR_STAGING_RELEASE`. The gate is the workflow's
+# `marker-gate` job which fails fast (and the deploy job depends on it).
+#
+# This is a SCAFFOLD — no real staging infrastructure exists yet (Phase 12).
 
 on:
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
 
 jobs:
+  marker-gate:
+    name: Staging-approval marker gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
+
+      - name: Verify staging-approval marker exists
+        id: marker
+        run: |
+          if [ ! -f .human-approvals/staging-approved.txt ]; then
+            echo "::error::Missing .human-approvals/staging-approved.txt — staging deploy blocked."
+            exit 1
+          fi
+          # The marker content is the exact string defined in change-control-pci.md.
+          if ! grep -q 'APPROVED_FOR_STAGING_RELEASE' .human-approvals/staging-approved.txt; then
+            echo "::error::Marker file present but does not contain APPROVED_FOR_STAGING_RELEASE."
+            exit 1
+          fi
+          echo "marker present + valid; gate open"
+
   deploy-staging:
-    name: Deploy to Staging
+    name: Deploy to staging
+    needs: marker-gate
     runs-on: ubuntu-latest
     environment: staging
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha || github.sha }}
 
-      - name: Build artifact
-        run: |
-          echo "Customize build command for your stack."
+      - name: Resolve target commit
+        id: target
+        run: echo "sha=${{ inputs.commit_sha || github.sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy to staging
+      - name: Deploy step (stub)
         run: |
-          echo "Customize staging deployment."
+          echo "would deploy ${{ steps.target.outputs.sha }} to staging"
+          echo "no staging infrastructure exists yet; this is a process scaffold."
 
-      - name: Run staging validation
+      - name: Staging validation (stub)
         run: |
-          echo "Customize e2e, migration, and smoke checks."
+          echo "would run e2e, migration drill, and smoke checks against staging"

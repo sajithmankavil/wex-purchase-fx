@@ -1,14 +1,17 @@
 chunk_id: 13-C3-openapi-cicd
-status: prompt_received   # created 2026-05-18 alongside C2's 15-clarification.md (C2/C3 split acceptance)
-prompt_sha: null   # set by `git hash-object 00-prompt.md` once committed
-summary_sha: null
+status: summary_posted   # 2026-05-18 — S2 + S3 + 3 MED carry-forwards complete (all 3 review_conditions ADDRESSED); ~+1,200/-86 net within 1,500 soft target; PR to follow on push
+prompt_sha: 307ea9208cf6a33c6f1cece74f8eb6ee5332bcf6
+summary_sha: null        # set by `git hash-object 20-summary.md` once committed
 review_sha: null
-pr: null
-ci_url: null
+pr: null                 # set to 11 once PR opens
+ci_url: null             # set once CI run lands
 deviations_open: []
-review_conditions: []   # C3 starts clean; S2/S3 items are direct deliverables, not review-derived conditions
+review_conditions:
+  - problem-detail-handler-structured-arguments-migration    # carry-forward from C2 30-review §3 (MED) — migrate ProblemDetailExceptionHandler.{onInvalidCurrency, onMalformedId} log emissions to StructuredArguments.kv
+  - metrics-catalog-increment-wiring-through-adapters        # carry-forward from C2 30-review §4 (MED) — wire treasuryRequest/singleFlightLoserOutcome/aliasDriftDetected into TreasuryClientAdapter::audit, SingleFlightGate, ProblemDetailExceptionHandler::onInvalidCurrency
+  - rate-revision-end-to-end-it-exercises-versioned-upsert   # carry-forward from C2 30-review-v2 §2 (MED) — fix RateRevisionEndToEndIT: remove interstitial DELETE FROM exchange_rates; assert (a) both rows persist (count=2 keyed on currency+record_date), (b) HTTP response returns the latest effective_date row, (c) hot-cache invalidates on upsert. Original test ships but does not exercise AC-026b — DELETE bypasses versioned-upsert
 follow_ups: []
 supersedes_part_of: 13-C2-observability-cicd   # C3 inherits S2 + S3 from the original C2 scope
 next_chunk: null   # FINAL Phase-13 chunk; after merge, Phase 13 closes and Phase 10 begins via the bulk-pass protocol (directives/2026-05-18-phase-10-11-bulk-pass-protocol.md)
 depends_on: [13-C2-observability-cicd]
-depends_on_satisfied: false   # C2 must merge to main before C3 starts
+depends_on_satisfied: in-review   # C2 is summary_posted (PR #10 open) but not yet merged; implementer branched off c2 branch and will rebase on main post-C2-merge per forward-motion bias

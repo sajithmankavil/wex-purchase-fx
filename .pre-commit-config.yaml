@@ -1,0 +1,26 @@
+# pre-commit hooks (C3 §S3).
+#
+# Run locally via `pre-commit install && pre-commit run --all-files`.
+# CI parity: the GitLeaks hook here uses the same ruleset as
+# `.github/workflows/security.yml::gitleaks`, so a local pre-commit catch
+# matches the CI-side finding exactly.
+#
+# Install: `pipx install pre-commit && pre-commit install`.
+repos:
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        name: GitLeaks (secrets scan)
+        description: Scans staged files for hard-coded secrets before commit. Matches the CI gitleaks job.
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-merge-conflict
+      - id: detect-private-key

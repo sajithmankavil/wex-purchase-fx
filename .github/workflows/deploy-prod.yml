@@ -1,42 +1,96 @@
-name: Deploy Production
+name: Deploy — prod
+
+# C3 §S3 deploy skeleton + PCI Tier 1 deploy gate.
+# Gated on:
+#   1. `.human-approvals/pci-production-approved.txt` existing AND containing
+#      the literal token `APPROVED_FOR_PCI_PRODUCTION_RELEASE`.
+#   2. `.human-approvals/staging-approved.txt` existing (proves staging has
+#      been validated upstream).
+#   3. `make pci-check` passing in strict mode (which it does only when the
+#      prod marker exists per `directives/2026-05-17-ops-check-and-pci-check-strict-flip.md`).
+#   4. `make ops-check` passing in strict mode (same gating logic).
+#
+# This is a SCAFFOLD — no real production infrastructure exists yet (Phase 12).
 
 on:
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy'
+        required: true
+
+permissions:
+  contents: read
 
 jobs:
-  deploy-prod:
-    name: Deploy to Production
+  marker-gate:
+    name: Production-approval marker gate
     runs-on: ubuntu-latest
-    environment: production
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
 
-      - name: Confirm production release checklist
+      - name: Verify PCI production approval marker
+        run: |
+          if [ ! -f .human-approvals/pci-production-approved.txt ]; then
+            echo "::error::Missing .human-approvals/pci-production-approved.txt — production deploy blocked. See change-control-pci.md §1 for the multi-signature procedure."
+            exit 1
+          fi
+          if ! grep -q 'APPROVED_FOR_PCI_PRODUCTION_RELEASE' .human-approvals/pci-production-approved.txt; then
+            echo "::error::PCI production approval marker present but does not contain APPROVED_FOR_PCI_PRODUCTION_RELEASE."
+            exit 1
+          fi
+          echo "PCI production approval marker present + valid"
+
+      - name: Verify staging approval marker (upstream-validated)
+        run: |
+          if [ ! -f .human-approvals/staging-approved.txt ]; then
+            echo "::error::staging deploy must run before prod; staging marker absent."
+            exit 1
+          fi
+          echo "staging marker present"
+
+      - name: Operational readiness gate (strict mode)
+        run: make ops-check
+
+      - name: PCI Tier 1 readiness gate (strict mode)
+        run: make pci-check
+
+      - name: Production checklist files exist
         run: |
           test -f docs/release/production-readiness-review.md
           test -f docs/operations/rollback-plan.md
           test -f docs/operations/operational-readiness-gate.md
           test -f docs/operations/monitoring-alerting.md
           test -f docs/operations/capacity-scalability-plan.md
-          echo "Production checklist files exist."
+          echo "production checklist files present"
 
-      - name: Enforce operational readiness
-        run: make ops-check
+  deploy-prod:
+    name: Deploy to prod
+    needs: marker-gate
+    runs-on: ubuntu-latest
+    environment: production  # GitHub Environments require named-reviewer sign-off too.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
 
-      - name: Build artifact
+      - name: Resolve target commit
+        id: target
+        run: echo "sha=${{ inputs.commit_sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy step (stub — wires in Phase 12)
         run: |
-          echo "Customize production build command."
+          echo "would deploy ${{ steps.target.outputs.sha }} to prod"
+          echo "no production infrastructure exists yet; this workflow is a process scaffold."
 
-      - name: Deploy canary or blue-green
+      - name: Production smoke check (stub)
         run: |
-          echo "Customize production deployment."
-          echo "Production deployment must be protected by GitHub Environment approval."
+          echo "would curl /actuator/health on prod ingress and assert 200; would verify SBOM artefact exists for this SHA"
 
-      - name: Production smoke test
+      - name: Monitor rollout (stub)
         run: |
-          echo "Customize production smoke tests."
-
-      - name: Monitor rollout against SLOs
-        run: |
-          echo "Customize rollout monitoring against SLOs, burn-rate alerts, canary health, saturation, and business KPIs."
+          echo "would watch SLO burn-rate dashboards + canary health + saturation for the configured grace window"
