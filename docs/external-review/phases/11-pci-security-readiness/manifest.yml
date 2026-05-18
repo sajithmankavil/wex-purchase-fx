@@ -1,0 +1,74 @@
+phase_id: 11-pci-security-readiness
+status: under_review   # 2026-05-18 — dev-authored provisional 30-review.md landed per directives/2026-05-18-hitl-gate-consolidation-protocol.md §2.1 (first activation: dev now authors all 4 dossier files; the consolidated HITL-gate reviewer ratifies/amends at the HITL trigger). Provisional verdict: ACCEPTED WITH CONDITIONS. C2 (malformed-id message redaction) CLOSED IN THIS PR via source change. F1 gating + C3 oasdiff + C4 audit-log-destination Phase-12-deferred with risk-managed Decisions. 1 BLOCKING-for-prod preserved (Req 8 OQ-010) + 1 BLOCKER (audit-log destination). On PR merge: dev flips under_review → accepted (mechanical state-machine transition; canonical "accepted" verdict comes from HITL-CONSOLIDATED-REVIEW.md at HITL-gate fire time).
+prompt_sha: 85bf513cabe102aaea76f1269eceb1dce428b399
+bundle_sha: 01c6daa0f12705643033e06f37b785c0ae966655
+review_sha: e2fe3a0acd15e602db860719f45d27d353479e2c
+review_verdict_provisional: ACCEPTED_WITH_CONDITIONS   # dev-authored; awaits HITL-gate ratification
+review_authored_by: dev   # per directives/2026-05-18-hitl-gate-consolidation-protocol.md §2.1
+review_sha: null
+review_verdict: null
+review_date: null
+pr: null
+ci_url: null
+
+# Source documents in scope per 00-prompt.md §2.
+source_docs:
+  # Core 5 (directive §6 minimum):
+  - docs/security/pci-scope-and-cde.md
+  - docs/security/change-control-pci.md
+  - docs/security/logging-monitoring-pci.md
+  - docs/security/encryption-key-management.md
+  - docs/security/access-control-pci.md
+  # Wider PCI surface:
+  - docs/security/cardholder-data-flow.md
+  - docs/security/cardholder-data-classification.md
+  - docs/security/tokenization-and-pan-handling.md
+  - docs/security/network-segmentation.md
+  - docs/security/secrets-policy.md
+  - docs/security/vulnerability-management-pci.md
+  - docs/security/secure-sdlc-pci.md
+  - docs/security/threat-model.md
+  - docs/security/incident-response-pci.md
+  - docs/security/asv-scan-plan.md
+  - docs/security/penetration-test-plan.md
+  - docs/security/qsa-roc-readiness.md
+  - docs/security/evidence-register.md
+  - docs/security/pci-dss-control-matrix.md
+  - docs/security/compensating-controls.md
+  - docs/security/third-party-service-provider-pci.md
+  - docs/security/backup-recovery-pci.md
+  - docs/security/targeted-risk-analysis.md
+  - docs/security/pci-security-grill.md
+  - docs/security/pci-production-readiness-gate.md
+  - docs/security/secure-config-hardening.md
+
+# M7 CI artefacts (live evidence; verified at CI run time):
+ci_artefacts:
+  - .github/workflows/security.yml::gitleaks
+  - .github/workflows/security.yml::semgrep
+  - .github/workflows/security.yml::owasp-dc
+  - .github/workflows/security.yml::trivy
+  - .github/workflows/security.yml::sbom
+
+# Dev-authored NEW deliverable required by directive §6:
+new_authored_docs:
+  - docs/security/pci-dss-control-mapping.md   # NEW; deep mapping of PCI DSS v4.0.1 controls -> implementation artefacts
+
+# Carry-forwards routed in from Phase 10 30-review.md §4 / §5 and prior C3 30-review:
+intake_review_conditions:
+  # From Phase 10 30-review:
+  - malformed-identifier-exception-message-redaction   # C2 LOW — CLOSED in this PR (source + test commit)
+  - oasdiff-vs-live-oas-pending-mvn                    # C3 MED — addressed in bundle Decisions; flip path documented
+  - audit-log-destination-provisioning                 # C4 MED — addressed in bundle coverage map
+  - idempotency-key-blocking-for-prod                  # C1 HIGH — preserved BLOCKING-for-prod flag; route to Phase 12
+  # From C3 30-review F1 (security-workflow gating):
+  - security-workflow-gating-activation                # MED — addressed in bundle Decisions; flip path documented
+
+review_conditions: []                # populated by reviewer 30-review.md
+
+follow_ups: []
+
+depends_on: [10-operational-readiness]
+depends_on_satisfied: in-review      # Phase 10 PR #13 open + ACCEPTED WITH CONDITIONS + CI green at HEAD 4e0ead2; Phase 11 parallel-started off Phase-10 branch (forward-motion-bias mid-review pattern; precedent set by C2→C3)
+
+next_phase: 12-production-approval   # Phase 12 is the multi-party human-signature procedure per docs/security/change-control-pci.md §1; OUT OF SCOPE of the bulk-pass directive (directive §9)
