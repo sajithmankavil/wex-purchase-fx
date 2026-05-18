@@ -69,8 +69,23 @@ class ProblemDetailExceptionHandlerTest {
     @DisplayName("MalformedIdentifier → 400 MALFORMED_IDENTIFIER")
     void malformedId() {
         // C 30-review §4.7 (NEW MED) — input must be hashed in both log AND response body.
+        // Phase 11 (Phase 10 30-review §C2) — defense-in-depth: exception getMessage() must NOT
+        // embed the raw input either, so a future catch-all handler logging e.getMessage()
+        // cannot leak it via the stack trace.
         String pan = "4242424242424242";
-        ResponseEntity<ProblemDetail> r = handler.onMalformedId(new MalformedIdentifierException(pan));
+        MalformedIdentifierException ex = new MalformedIdentifierException(pan);
+
+        // Defense-in-depth on the exception itself (Phase 11 C2):
+        assertThat(ex.getMessage())
+                .as("Phase 11 §C2 — getMessage() carries only length, no raw input")
+                .doesNotContain(pan)
+                .doesNotContain("4242")
+                .contains("length=" + pan.length());
+        assertThat(ex.getInput())
+                .as("getInput() still exposes the raw value for the centralised hashing handler")
+                .isEqualTo(pan);
+
+        ResponseEntity<ProblemDetail> r = handler.onMalformedId(ex);
         assertThat(r.getStatusCode().value()).isEqualTo(400);
         assertThat(propAsString(r, "errorCode")).isEqualTo("MALFORMED_IDENTIFIER");
 
