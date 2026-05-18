@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -67,7 +68,10 @@ public class ProblemDetailExceptionHandler {
     private final MetricsCatalog metrics;
 
     @Autowired
-    public ProblemDetailExceptionHandler(DescriptionHasher hasher, MetricsCatalog metrics) {
+    public ProblemDetailExceptionHandler(DescriptionHasher hasher, @Nullable MetricsCatalog metrics) {
+        // MetricsCatalog is optional — @WebMvcTest slices do not load the observability
+        // package, so MetricsCatalog won't be in the context. Production beans inject
+        // the real instance; @Nullable lets Spring resolve to null when absent.
         this.hasher = hasher;
         this.metrics = metrics;
     }
