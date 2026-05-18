@@ -14,8 +14,9 @@
 | 13-C-api-observability | accepted | #9 (rebase) | `ce73273` + `bf5f9de` + `c1ef322` 30-review | — closed |
 | 13-C2-observability-cicd | accepted | #10 (rebase) | `a242e27` + `c92e146` | — closed; 3 partial-closure carry-forwards CLOSED in C3 |
 | 13-C3-openapi-cicd | accepted | #11 (rebase) | `5e77ac0` + `5ca15e6` + `cf1b9a4` + `d06b552` | — closed; F2 pt1 closed pre-merge; 4 follow-ups → Phase 10 / 1 → Phase 11 / 1 → Phase 12; **FINAL Phase-13 chunk — Phase 13 COMPLETE** |
+| **10-operational-readiness** (bulk-pass) | bundle_posted | (PR open) | — | 2026-05-18 — dev pre-staged 00-prompt.md + bundle_posted via `feature/phase-10-operational-readiness`. Coverage map covers all 12 docs/operations/*.md source docs + 3 C3 carry-forwards. 5 BLOCKER rows (all production-runtime artifacts deferring to Phase 12); 5 open questions for reviewer (`20-bundle.md` §4). Includes: fleshed-out `incident-response.md` (was a 28-line stub), 3 Grafana dashboard JSON templates, drill template + folder. Awaits reviewer `30-review.md`. |
 
-Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded`.
+Status enum: `prompt_received | deviation_surfaced | implementing | summary_posted | under_review | accepted | rejected | superseded | bundling | bundle_posted | gaps_returned`.
 
 ## Phase 13 chunk plan (live)
 

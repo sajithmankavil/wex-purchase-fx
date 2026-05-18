@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 39,
+  "title": "WEX Purchase FX — Treasury Dependency",
+  "uid": "wex-treasury-dependency",
+  "tags": ["wex", "dependency", "treasury", "resilience"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "type": "custom",
+        "current": { "value": "prod", "text": "prod" },
+        "options": [
+          { "value": "prod", "text": "prod" },
+          { "value": "staging", "text": "staging" }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Treasury request outcome rate (per 5m)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(treasury_client_requests_total{environment=\"$environment\"}[5m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Circuit-breaker state (treasuryClient)",
+      "type": "stat",
+      "datasource": "prometheus",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "resilience4j_circuitbreaker_state{environment=\"$environment\",name=\"treasuryClient\"}",
+          "legendFormat": "{{state}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "CLOSED", "color": "green" } } },
+            { "type": "value", "options": { "1": { "text": "HALF_OPEN", "color": "yellow" } } },
+            { "type": "value", "options": { "2": { "text": "OPEN", "color": "red" } } }
+          ]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Treasury client p99 latency",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(treasury_client_duration_seconds_bucket{environment=\"$environment\"}[5m]))) * 1000",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 4,
+      "title": "Retry budget consumed (rate / 5m)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(resilience4j_retry_calls_total{environment=\"$environment\",name=\"treasuryClient\",kind=\"successful_with_retry\"}[5m]))",
+          "legendFormat": "succeeded with retry"
+        },
+        {
+          "expr": "sum(rate(resilience4j_retry_calls_total{environment=\"$environment\",name=\"treasuryClient\",kind=\"failed_with_retry\"}[5m]))",
+          "legendFormat": "failed after retries"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 5,
+      "title": "Single-flight gate outcomes (rate / 5m)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum by (type) (rate(single_flight_loser_outcome_total{environment=\"$environment\"}[5m]))",
+          "legendFormat": "loser/{{type}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Alias-drift detection rate (per 5m)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 4 },
+      "targets": [
+        {
+          "expr": "rate(currency_alias_drift_detected_total{environment=\"$environment\"}[5m])",
+          "legendFormat": "alias drift"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.1 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
