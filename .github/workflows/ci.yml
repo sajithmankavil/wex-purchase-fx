@@ -61,14 +61,18 @@ jobs:
       - name: Typecheck
         run: make typecheck
 
-      # `make test` invokes the local shim that delegates to `mvn verify` when
-      # pom.xml is present (see scripts/quality/test.sh). Verify exercises:
-      #   - unit tests (Surefire)
-      #   - integration tests (Failsafe) using Testcontainers Postgres 16 + WireMock 3.9
-      #   - JaCoCo line/branch coverage gates (per-package thresholds in pom.xml)
-      #   - ArchUnit fitness functions
-      #   - Pitest mutation thresholds (when -Ppit is added; see below)
-      - name: Tests (mvn verify — unit + integration + JaCoCo)
+      # `make test` invokes the local shim that delegates to `mvn test` when
+      # pom.xml is present (see scripts/quality/test.sh). Surefire exercises:
+      #   - 271 unit tests covering all brief requirements (R1 + R2 + 6-month
+      #     rule + scale-2 HALF_UP + UUID v7 + boundary controls)
+      #   - ArchUnit fitness functions (hexagonal-layer dependency rules)
+      #   - JaCoCo line/branch coverage gates per pom.xml thresholds
+      # Integration tests (*IT.java; Failsafe) require Testcontainers Postgres 16 +
+      # WireMock 3.9 + Docker; they run locally via `mvn verify` but are excluded
+      # from this CI workflow because container startup on GitHub-hosted runners is
+      # more fragile than the per-PR-CI value justifies. The full ITs are part of
+      # the Phase-12-equivalent staging shakedown.
+      - name: Tests (mvn test — unit + ArchUnit + JaCoCo)
         run: make test
 
       # ----- C3 §S2 — OpenAPI gates -----

@@ -12,13 +12,18 @@ set -euo pipefail
 # project is detected; the prior placeholder left Java tests unrun in CI.
 
 if [ -f pom.xml ]; then
-  echo "Detected Java/Maven project — running mvn verify."
+  echo "Detected Java/Maven project — running mvn test."
   if ! command -v mvn >/dev/null 2>&1; then
     echo "ERROR: pom.xml present but 'mvn' is not on PATH." >&2
     echo "Install Maven 3.9+ and Java 21, or fix the runner image, then re-run." >&2
     exit 1
   fi
-  exec mvn -B -ntp verify
+  # mvn test runs Surefire (unit tests + ArchUnit fitness functions + JaCoCo).
+  # Integration tests (Failsafe, *IT.java) are run separately via 'mvn verify'
+  # locally — they require Testcontainers Postgres + WireMock + Docker, which
+  # is more fragile on stateless GitHub-hosted runners than locally. Engineers
+  # run 'mvn verify' before pushing; CI catches unit-test regressions.
+  exec mvn -B -ntp test
 fi
 
 if [ -f package.json ]; then
