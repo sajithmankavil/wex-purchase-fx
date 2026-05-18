@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 39,
+  "title": "WEX Purchase FX — SLO Latency",
+  "uid": "wex-slo-latency",
+  "tags": ["wex", "slo", "latency"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": { "from": "now-30d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "type": "custom",
+        "current": { "value": "prod", "text": "prod" },
+        "options": [
+          { "value": "prod", "text": "prod" },
+          { "value": "staging", "text": "staging" }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "SLO-D — POST /purchases p99 latency (target ≤ 150 ms)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases\",method=\"POST\"}[5m]))) * 1000",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases\",method=\"POST\"}[5m]))) * 1000",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases\",method=\"POST\"}[5m]))) * 1000",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 120 },
+              { "color": "red", "value": 150 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "SLO-E — GET /purchases/{id} p99 latency (target ≤ 80 ms)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases/{id}\",method=\"GET\"}[5m]))) * 1000",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases/{id}\",method=\"GET\"}[5m]))) * 1000",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases/{id}\",method=\"GET\"}[5m]))) * 1000",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "SLO-F — GET /conversion p99 (cache HIT, target ≤ 300 ms)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\",method=\"GET\",wex_cache_source=\"hot_cache\"}[5m]))) * 1000",
+          "legendFormat": "p99 cache-hit"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 250 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "SLO-G — GET /conversion p99 (cache MISS, target ≤ 3000 ms)",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_requests_seconds_bucket{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\",method=\"GET\",wex_cache_source=\"treasury\"}[5m]))) * 1000",
+          "legendFormat": "p99 cache-miss"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2500 },
+              { "color": "red", "value": 3000 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

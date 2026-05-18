@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 39,
+  "title": "WEX Purchase FX — SLO Availability",
+  "uid": "wex-slo-availability",
+  "tags": ["wex", "slo", "availability"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "type": "custom",
+        "current": { "value": "prod", "text": "prod" },
+        "options": [
+          { "value": "prod", "text": "prod" },
+          { "value": "staging", "text": "staging" }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "SLO-A — POST /api/v1/purchases availability (target ≥ 99.9 %)",
+      "type": "stat",
+      "datasource": "prometheus",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases\",method=\"POST\",outcome=\"SUCCESS\"}[30d])) / sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases\",method=\"POST\"}[30d]))",
+          "legendFormat": "SLI-A 30d"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.998 },
+              { "color": "green", "value": 0.999 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "SLO-B — GET /api/v1/purchases/{id} availability (target ≥ 99.9 %)",
+      "type": "stat",
+      "datasource": "prometheus",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}\",method=\"GET\",status=~\"200|404\"}[30d])) / sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}\",method=\"GET\"}[30d]))",
+          "legendFormat": "SLI-B 30d"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.998 },
+              { "color": "green", "value": 0.999 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "SLO-C — GET /…/conversion availability (target ≥ 99.5 %; Treasury-bounded)",
+      "type": "stat",
+      "datasource": "prometheus",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\",method=\"GET\",status=~\"200|400|404|422\"}[30d])) / sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\",method=\"GET\"}[30d]))",
+          "legendFormat": "SLI-C 30d"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.99 },
+              { "color": "green", "value": 0.995 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Error-budget burn — fast (1h) vs slow (6h) — SLO-C",
+      "type": "timeseries",
+      "datasource": "prometheus",
+      "gridPos": { "x": 0, "y": 6, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "expr": "(1 - (sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\",status=~\"200|400|404|422\"}[1h])) / sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\"}[1h])))) / 0.005",
+          "legendFormat": "fast burn (1h)"
+        },
+        {
+          "expr": "(1 - (sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\",status=~\"200|400|404|422\"}[6h])) / sum(rate(http_server_requests_seconds_count{environment=\"$environment\",uri=\"/api/v1/purchases/{id}/conversion\"}[6h])))) / 0.005",
+          "legendFormat": "slow burn (6h)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 14.4 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "right" }
+      }
+    }
+  ]
+}
