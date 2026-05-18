@@ -99,7 +99,10 @@ class SingleFlightGateTest {
                         winnerInstalled.countDown();
                         upstreamCalls.incrementAndGet();
                         try {
-                            winnerHolds.await(2, TimeUnit.SECONDS);
+                            // Generous timeout: this only fires if the test never
+                            // calls winnerHolds.countDown(). The outer Future.get
+                            // imposes the real test-failure timeout.
+                            winnerHolds.await(30, TimeUnit.SECONDS);
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
                         }
@@ -108,15 +111,32 @@ class SingleFlightGateTest {
                     },
                     persisted::get));
             // Deterministic wait — winner is now inside its lambda; the gate state
-            // is installed; loser submissions are guaranteed to take the loser path.
-            assertThat(winnerInstalled.await(2, TimeUnit.SECONDS)).isTrue();
+            // is installed; loser submissions are guaranteed to take the loser path
+            // (provided losers enter gate.runOnce before the winner's lambda returns).
+            assertThat(winnerInstalled.await(5, TimeUnit.SECONDS)).isTrue();
 
-            Future<?> loser1 = exec.submit(() -> gate.runOnce(key,
-                    () -> { upstreamCalls.incrementAndGet(); return null; },
-                    persisted::get));
-            Future<?> loser2 = exec.submit(() -> gate.runOnce(key,
-                    () -> { upstreamCalls.incrementAndGet(); return null; },
-                    persisted::get));
+            // Coordination latch — each loser counts down right before calling
+            // runOnce. We then wait for both, plus a short scheduling delay to
+            // give the losers time to actually enter runOnce + observe the gate.
+            CountDownLatch losersAboutToEnter = new CountDownLatch(2);
+            Future<?> loser1 = exec.submit(() -> {
+                losersAboutToEnter.countDown();
+                return gate.runOnce(key,
+                        () -> { upstreamCalls.incrementAndGet(); return null; },
+                        persisted::get);
+            });
+            Future<?> loser2 = exec.submit(() -> {
+                losersAboutToEnter.countDown();
+                return gate.runOnce(key,
+                        () -> { upstreamCalls.incrementAndGet(); return null; },
+                        persisted::get);
+            });
+            assertThat(losersAboutToEnter.await(5, TimeUnit.SECONDS)).isTrue();
+            // Give losers ~100 ms to enter runOnce + observe the gate before we
+            // release the winner. Without this, on a slow CI runner the winner
+            // can finish + remove the gate before losers reach runOnce, and the
+            // losers each install their own gate and run upstream.
+            Thread.sleep(100);
 
             // Release the winner.
             winnerHolds.countDown();
@@ -147,7 +167,8 @@ class SingleFlightGateTest {
                 try {
                     return gate.runOnce(key, () -> {
                         winnerInstalled.countDown();
-                        try { winnerHolds.await(2, TimeUnit.SECONDS); }
+                        // Generous timeout — see twoLosersOneWinner for rationale.
+                        try { winnerHolds.await(30, TimeUnit.SECONDS); }
                         catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                         throw new UpstreamUnavailableException("timeout");
                     }, () -> false);
@@ -155,9 +176,11 @@ class SingleFlightGateTest {
                     return null;  // swallow — we're asserting the loser's behaviour
                 }
             });
-            assertThat(winnerInstalled.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(winnerInstalled.await(5, TimeUnit.SECONDS)).isTrue();
 
+            CountDownLatch loserAboutToEnter = new CountDownLatch(1);
             Future<UpstreamUnavailableException> loser = exec.submit(() -> {
+                loserAboutToEnter.countDown();
                 try {
                     gate.runOnce(key, () -> { throw new AssertionError("loser ran upstream"); },
                             () -> false);
@@ -166,6 +189,10 @@ class SingleFlightGateTest {
                     return e;
                 }
             });
+            assertThat(loserAboutToEnter.await(5, TimeUnit.SECONDS)).isTrue();
+            // Give the loser ~100 ms to enter runOnce + observe the gate before
+            // we release the winner (see twoLosersOneWinner for rationale).
+            Thread.sleep(100);
 
             winnerHolds.countDown();
             winner.get(5, TimeUnit.SECONDS);
