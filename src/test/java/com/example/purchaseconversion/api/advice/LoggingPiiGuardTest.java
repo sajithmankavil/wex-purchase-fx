@@ -155,17 +155,43 @@ class LoggingPiiGuardTest {
         }
     }
 
+    /**
+     * Aggregates the visible textual content of each log event for assertions.
+     *
+     * <p>Post-C3-hygiene the handler emits via {@link net.logstash.logback.argument.StructuredArguments#kv}.
+     * Those values are carried on the event's argument array, NOT in
+     * {@link ILoggingEvent#getFormattedMessage()} (the logstash JSON encoder
+     * lifts them to top-level fields at serialisation time). The ListAppender
+     * sees the structured pieces separately. This helper concatenates the
+     * formatted message AND every argument's string form so the assertions
+     * cover both shapes — and so a future migration back to inline-formatted
+     * substitution would also pass.
+     */
     private List<String> allMessages() {
         return appender.list.stream()
-                .map(ILoggingEvent::getFormattedMessage)
+                .map(LoggingPiiGuardTest::renderEvent)
                 .collect(Collectors.toList());
     }
 
     private String messagesAtLevel(Level level) {
         return appender.list.stream()
                 .filter(e -> e.getLevel().equals(level))
-                .map(ILoggingEvent::getFormattedMessage)
+                .map(LoggingPiiGuardTest::renderEvent)
                 .collect(Collectors.joining("\n"));
+    }
+
+    /** Render the event's formatted message + every argument's string form. */
+    private static String renderEvent(ILoggingEvent event) {
+        StringBuilder sb = new StringBuilder(event.getFormattedMessage());
+        Object[] args = event.getArgumentArray();
+        if (args != null) {
+            for (Object arg : args) {
+                if (arg != null) {
+                    sb.append(' ').append(arg);
+                }
+            }
+        }
+        return sb.toString();
     }
 
     private static void assertNoRawIn(List<String> messages, String forbidden) {
