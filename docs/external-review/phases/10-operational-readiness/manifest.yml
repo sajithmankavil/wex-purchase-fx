@@ -1,12 +1,14 @@
 phase_id: 10-operational-readiness
-status: under_review   # 2026-05-18 — reviewer 30-review.md authored at e5a202d; verdict ACCEPTED WITH CONDITIONS. Awaits implementer PR open + CI green + merge for mechanical transition under_review → accepted. On accepted, reviewer next tick pre-stages phases/11-pci-security-readiness/{00-prompt.md, manifest.yml} per directive §6.
+status: accepted   # 2026-05-18 — PR #13 merged via rebase; substantive at 2bcd499 + hygiene at 9c9e036. Mechanical under_review → accepted flip per HITL-gate directive §2.1 dev authority. Canonical verdict was reviewer-authored (PR #13 hygiene commit pre-dates the HITL-gate directive activation). All 14 conditions tracked in review_conditions matrix.
 prompt_sha: ea7a89a9e939f83607281c20d0297ab79d6a1a97
-bundle_sha: 09abe35543be9b58ab8791c578066e29e8b2a366    # will change after F-LOW-1/2 hygiene fixes land in this commit; reviewer is welcome to update on next tick.
+bundle_sha: 09abe35543be9b58ab8791c578066e29e8b2a366
 review_sha: 3704eb029d6d5936b89e55a54d1df79e2f329be8
 review_verdict: ACCEPTED_WITH_CONDITIONS
 review_date: 2026-05-18
+review_authored_by: reviewer   # grandfathered as canonical (pre-HITL-gate-directive); see HITL-gate directive §5
 pr: 13
-ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26017466394   # green run on initial bundle_posted (HEAD e5a202d); will re-run after hygiene commit lands
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26017466394
+merged_at: 9c9e036   # final commit of PR #13 (hygiene); substantive 2bcd499
 
 # Source documents in scope per 00-prompt.md §2. Every requirement across these
 # files must have a coverage-map row in 20-bundle.md.

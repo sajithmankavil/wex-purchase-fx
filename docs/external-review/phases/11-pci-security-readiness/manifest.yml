@@ -1,15 +1,14 @@
 phase_id: 11-pci-security-readiness
-status: under_review   # 2026-05-18 — dev-authored provisional 30-review.md landed per directives/2026-05-18-hitl-gate-consolidation-protocol.md §2.1 (first activation: dev now authors all 4 dossier files; the consolidated HITL-gate reviewer ratifies/amends at the HITL trigger). Provisional verdict: ACCEPTED WITH CONDITIONS. C2 (malformed-id message redaction) CLOSED IN THIS PR via source change. F1 gating + C3 oasdiff + C4 audit-log-destination Phase-12-deferred with risk-managed Decisions. 1 BLOCKING-for-prod preserved (Req 8 OQ-010) + 1 BLOCKER (audit-log destination). On PR merge: dev flips under_review → accepted (mechanical state-machine transition; canonical "accepted" verdict comes from HITL-CONSOLIDATED-REVIEW.md at HITL-gate fire time).
+status: accepted   # 2026-05-18 — PR #14 merged via rebase at 7dfa267. Mechanical state-machine transition per HITL-gate directive §2.1 dev authority. The "accepted" here means the dossier-state machine reached its terminal state; the CANONICAL verdict comes from docs/external-review/HITL-CONSOLIDATED-REVIEW.md (produced by the consolidated reviewer pass when the HITL-READY.md trigger fires).
 prompt_sha: 85bf513cabe102aaea76f1269eceb1dce428b399
 bundle_sha: 01c6daa0f12705643033e06f37b785c0ae966655
 review_sha: e2fe3a0acd15e602db860719f45d27d353479e2c
 review_verdict_provisional: ACCEPTED_WITH_CONDITIONS   # dev-authored; awaits HITL-gate ratification
 review_authored_by: dev   # per directives/2026-05-18-hitl-gate-consolidation-protocol.md §2.1
-review_sha: null
-review_verdict: null
-review_date: null
-pr: null
-ci_url: null
+review_date: 2026-05-18
+pr: 14
+ci_url: https://github.com/sajithmankavil/wex-purchase-fx/actions/runs/26018676262
+merged_at: 7dfa267
 
 # Source documents in scope per 00-prompt.md §2.
 source_docs:
