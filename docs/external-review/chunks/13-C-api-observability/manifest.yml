@@ -1,5 +1,5 @@
 chunk_id: 13-C-api-observability
-status: under_review   # reviewer verdict 2026-05-18 — ACCEPTED WITH CONDITIONS (see 30-review.md); flip to `accepted` on merge per forward-motion mechanical-transition pattern. Scope of acceptance: M4 + 4 carry-forwards; M5/M6/M7 deferred to pre-staged 13-C2-observability-cicd. All four original review_conditions CLOSED in this PR. New findings (incl. §4.7 NEW MED on MalformedIdentifierException) routed to 13-C2.
+status: accepted   # merged to main 2026-05-18 as commit ce73273 (rebase strategy); mechanical transition per 30-review.md §8
 prompt_sha: 9f49a43f0b172161c45ea950533983427ef106d8
 clarification_sha: b7b5dfebd81b303a96cc33893a06924753447517  # 15-clarification.md (1 A2 intake item — closed by 30-review §2.1)
 summary_sha: aa66be629fe29f0a3d47b839caf9014b619a9c6a
