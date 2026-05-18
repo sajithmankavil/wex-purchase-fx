@@ -123,7 +123,7 @@ flowchart TB
 | Observability | **Micrometer + Prometheus** (metrics) / **Micrometer Tracing + OpenTelemetry OTLP exporter** (traces) / **Logstash Logback Encoder** (structured JSON logs) | Single instrumentation stack; vendor-neutral via OTLP. Event names + tags are the contract (`observability.md`). |
 | API spec | **springdoc-openapi 2.6 (OAS 3.1)** + **Spectral 6** lint + **oasdiff** vs `infra/openapi/baseline.yaml` | Baseline is the regression contract; CI fails on drift unless annotated as breaking-change ADR. |
 | Test infrastructure | JUnit 5, **Testcontainers** (Postgres 16), **WireMock 3.9** (Treasury stub), **ArchUnit 1.3**, **JaCoCo 0.8.12**, **Pitest 1.17** | Real Postgres in IT (no schema-mock divergence); WireMock for Treasury contract tests; ArchUnit guards hexagonal layering. |
-| Security tooling (CI) | **GitLeaks** (secrets) / **Semgrep** (SAST) / **OWASP Dependency-Check** (SCA) / **Trivy** (vuln scan) / **CycloneDX-maven-plugin** (SBOM) | All 5 wired in `.github/workflows/security.yml`; gating-flip to blocking on HIGH/CRITICAL is Phase-12-equivalent. |
+| Security tooling (CI) | **GitLeaks** (secrets) / **Semgrep** (SAST) / **OWASP Dependency-Check** (SCA) / **Trivy** (fs + container vuln scan) / **CycloneDX-maven-plugin** (SBOM) / **OWASP ZAP** (DAST baseline scan against the booted service) | All 6 wired in `.github/workflows/security.yml`; gating-flip to blocking on HIGH/CRITICAL is Phase-12-equivalent. ZAP rules tuned for a JSON-only API in [`.zap/rules.tsv`](.zap/rules.tsv). |
 | Pre-commit | GitLeaks + check-yaml + trailing-whitespace + check-merge-conflict + detect-private-key | Local secrets-scan ruleset matches CI. |
 
 ---
