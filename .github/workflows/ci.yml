@@ -98,21 +98,14 @@ jobs:
 
       - name: oasdiff live vs baseline
         run: |
+          # Three modes: oasdiff installed + live OAS available -> full diff;
+          # oasdiff missing but live OAS available -> structural path comparison
+          # via a Python helper file; otherwise fall back to baseline parse-only.
           if command -v oasdiff >/dev/null 2>&1 && [ -f target/openapi-live.yaml ]; then
             oasdiff diff infra/openapi/baseline.yaml target/openapi-live.yaml --fail-on ERR
           elif [ -f target/openapi-live.yaml ]; then
-            echo "oasdiff binary not in runner; performing structural comparison"
-            python3 -c "
-            import yaml, sys
-            base = yaml.safe_load(open('infra/openapi/baseline.yaml'))
-            live = yaml.safe_load(open('target/openapi-live.yaml'))
-            base_paths = sorted(base.get('paths', {}).keys())
-            live_paths = sorted(live.get('paths', {}).keys())
-            if base_paths != live_paths:
-                print(f'OAS path drift: baseline={base_paths} live={live_paths}', file=sys.stderr)
-                sys.exit(1)
-            print(f'OAS paths match: {base_paths}')
-            "
+            echo "oasdiff binary not in runner; performing structural comparison via scripts/quality/oas_path_diff.py"
+            python3 scripts/quality/oas_path_diff.py infra/openapi/baseline.yaml target/openapi-live.yaml
           else
             echo "Live OAS unavailable; falling back to baseline parse-only"
             python3 -c "import yaml; yaml.safe_load(open('infra/openapi/baseline.yaml'))"
