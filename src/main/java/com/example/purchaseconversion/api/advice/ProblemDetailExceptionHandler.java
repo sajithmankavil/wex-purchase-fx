@@ -161,7 +161,7 @@ public class ProblemDetailExceptionHandler {
         // with a redacted placeholder so the raw value never appears in the response.
         ProblemDetail body = resp.getBody();
         if (body != null) {
-            body.setInstance(URI.create("/api/v1/purchases/<malformed>"));
+            body.setInstance(URI.create("/api/v1/purchases/redacted"));
         }
         return resp;
     }
