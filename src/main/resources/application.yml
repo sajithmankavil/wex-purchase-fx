@@ -48,6 +48,10 @@ wex:
     # D-9 loser semantics: 10 s wait + 100 ms DB poll + WinnerOutcome ref mirror.
     loser-wait-ms: ${WEX_SF_LOSER_WAIT_MS:10000}
     db-poll-interval-ms: ${WEX_SF_DB_POLL_INTERVAL_MS:100}
+  eligibility:
+    # In-memory reference-data cache refresh period (eligibility-endpoint-spec.md §4.1).
+    # Small, mostly-static table — 5 min default balances freshness against needless reload work.
+    refresh-interval-ms: ${WEX_ELIGIBILITY_REFRESH_MS:300000}
 
 # Resilience4j — ADR-0001 D-9; failure-modes-and-resilience.md §3
 resilience4j:

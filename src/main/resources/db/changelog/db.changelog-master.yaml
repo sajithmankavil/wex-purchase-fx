@@ -5,3 +5,6 @@ databaseChangeLog:
   - include:
       file: changesets/v2-exchange-rates.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changesets/v3-benefit-eligibility.yaml
+      relativeToChangelogFile: true

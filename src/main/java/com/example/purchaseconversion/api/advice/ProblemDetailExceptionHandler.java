@@ -1,10 +1,12 @@
 package com.example.purchaseconversion.api.advice;
 
 import com.example.purchaseconversion.api.advice.exception.PanPatternDetectedException;
+import com.example.purchaseconversion.application.exception.BenefitNotFoundException;
 import com.example.purchaseconversion.application.exception.ConversionRateNotAvailableException;
 import com.example.purchaseconversion.application.exception.DomainException;
 import com.example.purchaseconversion.application.exception.FutureDateException;
 import com.example.purchaseconversion.application.exception.InvalidCurrencyException;
+import com.example.purchaseconversion.application.exception.InvalidTierException;
 import com.example.purchaseconversion.application.exception.MalformedIdentifierException;
 import com.example.purchaseconversion.application.exception.PurchaseNotFoundException;
 import com.example.purchaseconversion.application.exception.UpstreamBadResponseException;
@@ -24,6 +26,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -104,6 +107,21 @@ public class ProblemDetailExceptionHandler {
     public ResponseEntity<ProblemDetail> onUnreadableBody(HttpMessageNotReadableException e) {
         return respond(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED",
                 "Request body could not be parsed", Map.of("reason", "unreadable-body"), null);
+    }
+
+    /**
+     * Shared across every controller with a required {@code @RequestParam}. The
+     * eligibility endpoint's missing-{@code tier} case (spec §2) gets the specific
+     * {@code MISSING_TIER} errorCode it documents; any other missing-required-param
+     * case (e.g. the purchases endpoint's {@code currency}) gets the generic
+     * {@code MISSING_PARAMETER} rather than a misleading tier-specific code.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemDetail> onMissingParameter(MissingServletRequestParameterException e) {
+        String errorCode = "tier".equals(e.getParameterName()) ? "MISSING_TIER" : "MISSING_PARAMETER";
+        return respond(HttpStatus.BAD_REQUEST, errorCode,
+                "Required parameter is missing",
+                Map.of("parameter", e.getParameterName()), null);
     }
 
     // --- Content guard ---
@@ -216,6 +234,25 @@ public class ProblemDetailExceptionHandler {
         return respond(HttpStatus.BAD_GATEWAY, "UPSTREAM_BAD_RESPONSE",
                 "Upstream Treasury returned a non-conformant payload",
                 Map.of("reason", e.getReason()), null);
+    }
+
+    /** eligibility-endpoint-spec.md §3.3 — distinct from "not eligible"; see class-level javadoc there. */
+    @ExceptionHandler(BenefitNotFoundException.class)
+    public ResponseEntity<ProblemDetail> onBenefitNotFound(BenefitNotFoundException e) {
+        return respond(HttpStatus.NOT_FOUND, "BENEFIT_NOT_FOUND",
+                "Benefit not found",
+                Map.of("benefitId", e.getBenefitId().value()), null);
+    }
+
+    /**
+     * eligibility-endpoint-spec.md §3.3 — {@code tier} is a short, bounded-enum-shaped
+     * field, not free text; echoed directly (no hashing needed, unlike currency/id).
+     */
+    @ExceptionHandler(InvalidTierException.class)
+    public ResponseEntity<ProblemDetail> onInvalidTier(InvalidTierException e) {
+        return respond(HttpStatus.BAD_REQUEST, "INVALID_TIER",
+                "tier is not a recognized card tier",
+                Map.of("tier", e.getTier()), null);
     }
 
     // --- Catch-all ---

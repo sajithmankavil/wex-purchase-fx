@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: v3-create-benefit-eligibility
+      author: wex-purchase-fx
+      labels: schema,benefit-eligibility
+      comment: >
+        Cardholder benefit-eligibility check (eligibility-endpoint-spec.md §3.2 —
+        minimum-tier model). One row per benefit; a cardholder is eligible iff
+        their tier meets or exceeds minimum_tier. No admin API in v1 — rows are
+        seeded via migration only (spec §5 scope-affecting #4).
+      changes:
+        - createTable:
+            tableName: benefit_eligibility
+            columns:
+              - column:
+                  name: benefit_id
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: minimum_tier
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP(6)
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: benefit_eligibility
+            columnNames: benefit_id
+            constraintName: pk_benefit_eligibility
+        - sql:
+            comment: minimum_tier must be one of the three known CardTier values (spec §3.1).
+            sql: >
+              ALTER TABLE benefit_eligibility
+              ADD CONSTRAINT chk_minimum_tier_known
+              CHECK (minimum_tier IN ('PLATINUM', 'SIGNATURE', 'INFINITE'));
+      rollback:
+        - dropTable:
+            tableName: benefit_eligibility
+
+  - changeSet:
+      id: v3-seed-benefit-eligibility
+      author: wex-purchase-fx
+      labels: seed,benefit-eligibility
+      comment: >
+        Local/test seed data — a small illustrative benefit set spanning all
+        three tiers, per spec §3.2 ("seed a handful of rows for local/test use").
+      changes:
+        - insert:
+            tableName: benefit_eligibility
+            columns:
+              - column: { name: benefit_id, value: BEN-1001 }
+              - column: { name: minimum_tier, value: PLATINUM }
+              - column: { name: updated_at, valueDate: 2026-01-01T00:00:00 }
+        - insert:
+            tableName: benefit_eligibility
+            columns:
+              - column: { name: benefit_id, value: BEN-1002 }
+              - column: { name: minimum_tier, value: SIGNATURE }
+              - column: { name: updated_at, valueDate: 2026-01-01T00:00:00 }
+        - insert:
+            tableName: benefit_eligibility
+            columns:
+              - column: { name: benefit_id, value: BEN-1003 }
+              - column: { name: minimum_tier, value: INFINITE }
+              - column: { name: updated_at, valueDate: 2026-01-01T00:00:00 }
+      rollback:
+        - delete:
+            tableName: benefit_eligibility
