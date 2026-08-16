@@ -175,7 +175,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local  # boot the service
 
 Integration tests use **Testcontainers** (spins Postgres 16 in a Docker container) and **WireMock 3.9** (Treasury stub). Docker daemon required for `mvn verify`.
 
-**Branching:** work happens on short-lived feature branches off `main` (e.g. `f1`), merged via PR after review, rebased onto latest `main` before merge to avoid drift. `main` is protected — no direct pushes. Every PR must show a green `mvn test` run before merge; the PR description records the pass/fail count as evidence.
+**Branching:** work happens on short-lived feature branches off `main` (e.g. `f2`), rebased onto latest `main` before merge to avoid drift, and merged via PR after review. `main` is protected — no direct pushes. Every PR must show a green `mvn test` run before merge; the PR description records the pass/fail count as evidence. PRs are squash-merged so `main` history stays one commit per feature.
 
 ---
 
