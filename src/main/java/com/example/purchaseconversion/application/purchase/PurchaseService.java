@@ -41,9 +41,7 @@ public final class PurchaseService implements RegisterPurchaseUseCase, RetrieveP
     @Override
     public Purchase register(RegisterPurchaseCommand command) {
         Objects.requireNonNull(command, "command must not be null");
-        if (command.transactionDate().isAfter(clock.today())) {
-            throw new FutureDateException(command.transactionDate());
-        }
+        requireNotFutureDated(command);
         String normalizedDescription = command.description().strip();
         Purchase candidate = new Purchase(
                 PurchaseId.next(),
@@ -58,5 +56,11 @@ public final class PurchaseService implements RegisterPurchaseUseCase, RetrieveP
         Objects.requireNonNull(id, "id must not be null");
         return purchaseRepository.findById(id)
                 .orElseThrow(() -> new PurchaseNotFoundException(id));
+    }
+
+    private void requireNotFutureDated(RegisterPurchaseCommand command) {
+        if (command.transactionDate().isAfter(clock.today())) {
+            throw new FutureDateException(command.transactionDate());
+        }
     }
 }
