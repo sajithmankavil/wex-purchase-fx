@@ -110,6 +110,20 @@ class PurchaseServiceTest {
         }
 
         @Test
+        @DisplayName("trims leading/trailing whitespace from the description before persisting")
+        void trimsDescriptionWhitespace() {
+            when(clock.today()).thenReturn(TODAY);
+            RegisterPurchaseCommand command = new RegisterPurchaseCommand(
+                    "  Coffee at Logan  ", LocalDate.of(2026, 5, 10), Money.of("4.50"));
+            when(purchaseRepository.save(any(Purchase.class)))
+                    .thenAnswer(inv -> inv.getArgument(0));
+
+            Purchase result = service.register(command);
+
+            assertThat(result.description()).isEqualTo("Coffee at Logan");
+        }
+
+        @Test
         @DisplayName("AC-002 — 50-char description is accepted (delegated to Purchase invariant)")
         void accepts50CharDescription() {
             when(clock.today()).thenReturn(TODAY);

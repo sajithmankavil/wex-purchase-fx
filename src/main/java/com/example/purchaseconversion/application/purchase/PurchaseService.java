@@ -42,9 +42,10 @@ public final class PurchaseService implements RegisterPurchaseUseCase, RetrieveP
     public Purchase register(RegisterPurchaseCommand command) {
         Objects.requireNonNull(command, "command must not be null");
         requireNotFutureDated(command);
+        String normalizedDescription = command.description().strip();
         Purchase candidate = new Purchase(
                 PurchaseId.next(),
-                command.description(),
+                normalizedDescription,
                 command.transactionDate(),
                 command.amountUsd());
         return purchaseRepository.save(candidate);
