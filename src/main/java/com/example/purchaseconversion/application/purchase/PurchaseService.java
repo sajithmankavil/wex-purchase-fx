@@ -47,7 +47,7 @@ public final class PurchaseService implements RegisterPurchaseUseCase, RetrieveP
         String normalizedDescription = command.description().strip();
         Purchase candidate = new Purchase(
                 PurchaseId.next(),
-                command.description(),
+                normalizedDescription,
                 command.transactionDate(),
                 command.amountUsd());
         return purchaseRepository.save(candidate);
