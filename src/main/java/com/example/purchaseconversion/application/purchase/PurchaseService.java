@@ -44,7 +44,7 @@ public final class PurchaseService implements RegisterPurchaseUseCase, RetrieveP
         if (command.transactionDate().isAfter(clock.today())) {
             throw new FutureDateException(command.transactionDate());
         }
-        System.out.println("test");
+        String normalizedDescription = command.description().strip();
         Purchase candidate = new Purchase(
                 PurchaseId.next(),
                 command.description(),
