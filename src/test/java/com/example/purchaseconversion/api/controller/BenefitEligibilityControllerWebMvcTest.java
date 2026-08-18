@@ -9,8 +9,8 @@ import com.example.purchaseconversion.application.port.in.CheckEligibilityUseCas
 import com.example.purchaseconversion.domain.BenefitId;
 import com.example.purchaseconversion.domain.CardTier;
 import com.example.purchaseconversion.observability.DescriptionHasher;
-import com.example.purchaseconversion.observability.EligibilityAuditLogger;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,18 +56,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @Import({ContentGuard.class, ContentGuardAdvice.class, ProblemDetailExceptionHandler.class,
         BenefitEligibilityControllerWebMvcTest.HasherConfig.class})
-class BenefitEligibilityControllerWebMvcTest {
+class BenefitEligibilityControllerWebMvcTest extends AbstractWebMvcTestSupport {
 
     @Autowired private MockMvc mvc;
+    @Autowired private ObjectMapper objectMapper;
 
     @MockBean private CheckEligibilityUseCase checkEligibility;
-    // Satisfies WexRateLimiterFilter's constructor (component-scanned by the slice but
-    // not applied — addFilters=false above disables the chain).
-    @MockBean private RateLimiterRegistry rateLimiterRegistry;
-    // Satisfies EligibilityAuditInterceptor's constructor — @WebMvcTest auto-includes
-    // HandlerInterceptor beans, so this is required even though the controller itself
-    // no longer depends on the logger directly (moved to the interceptor, see class javadoc).
-    @MockBean private EligibilityAuditLogger eligibilityAuditLogger;
+    // rateLimiterRegistry + eligibilityAuditLogger mocks are inherited from
+    // AbstractWebMvcTestSupport (eligibilityAuditLogger is used directly below via
+    // verify(...) — protected visibility on the base class makes that possible).
 
     @Test
     @DisplayName("200 — Eligible → eligible:true, and the full audit path fires end-to-end")
@@ -93,6 +96,7 @@ class BenefitEligibilityControllerWebMvcTest {
                 org.mockito.ArgumentMatchers.eq("BEN-1042"),
                 org.mockito.ArgumentMatchers.eq("SIGNATURE"),
                 org.mockito.ArgumentMatchers.eq(true),
+                org.mockito.ArgumentMatchers.isNull(),
                 org.mockito.ArgumentMatchers.anyLong());
     }
 
@@ -109,17 +113,47 @@ class BenefitEligibilityControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("400 — unrecognized tier → INVALID_TIER; no audit attributes stamped")
+    @DisplayName("200 response body has exactly the three documented fields — no extras, none missing (spec §7)")
+    void responseShapeHasExactlyDocumentedFields() throws Exception {
+        when(checkEligibility.check(BenefitId.of("BEN-1042"), CardTier.SIGNATURE))
+                .thenReturn(new EligibilityResult.Eligible(BenefitId.of("BEN-1042"), CardTier.SIGNATURE));
+
+        String json = mvc.perform(get("/api/v1/benefits/{benefitId}/eligibility", "BEN-1042")
+                        .param("tier", "SIGNATURE"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode root = objectMapper.readTree(json);
+        List<String> fieldNames = new ArrayList<>();
+        root.fieldNames().forEachRemaining(fieldNames::add);
+        assertThat(fieldNames).containsExactlyInAnyOrder("benefitId", "tier", "eligible");
+    }
+
+    @Test
+    @DisplayName("400 — unrecognized tier → INVALID_TIER, raw value hashed not echoed; no audit attributes stamped")
     void invalidTier() throws Exception {
         MvcResult result = mvc.perform(get("/api/v1/benefits/{benefitId}/eligibility", "BEN-1042")
                         .param("tier", "GOLD"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.errorCode").value("INVALID_TIER"))
-                .andExpect(jsonPath("$.details.tier").value("GOLD"))
+                .andExpect(jsonPath("$.details.tier.hash").value(notNullValue()))
+                .andExpect(jsonPath("$.details.tier.length").value(4))
+                .andExpect(content().string(not(containsString("GOLD"))))
                 .andReturn();
 
         assertThat(result.getRequest().getAttribute(EligibilityAuditInterceptor.ATTR_BENEFIT_ID)).isNull();
+    }
+
+    @Test
+    @DisplayName("400 — PAN-shaped tier value is hashed, never echoed (spec §2 review correction)")
+    void invalidTierPanShapedInputIsHashed() throws Exception {
+        String pan = "4242424242424242";
+        mvc.perform(get("/api/v1/benefits/{benefitId}/eligibility", "BEN-1042").param("tier", pan))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_TIER"))
+                .andExpect(jsonPath("$.details.tier.length").value(pan.length()))
+                .andExpect(content().string(not(containsString("4242"))));
     }
 
     @Test
@@ -132,7 +166,7 @@ class BenefitEligibilityControllerWebMvcTest {
     }
 
     @Test
-    @DisplayName("404 — NotFound → BENEFIT_NOT_FOUND; no audit attributes stamped")
+    @DisplayName("404 — NotFound → BENEFIT_NOT_FOUND, raw id hashed not echoed; no audit attributes stamped")
     void benefitNotFound() throws Exception {
         when(checkEligibility.check(any(BenefitId.class), any(CardTier.class)))
                 .thenReturn(new EligibilityResult.NotFound(BenefitId.of("BEN-9999")));
@@ -142,7 +176,9 @@ class BenefitEligibilityControllerWebMvcTest {
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.errorCode").value("BENEFIT_NOT_FOUND"))
-                .andExpect(jsonPath("$.details.benefitId").value("BEN-9999"))
+                .andExpect(jsonPath("$.details.benefitId.hash").value(notNullValue()))
+                .andExpect(jsonPath("$.details.benefitId.length").value(8))
+                .andExpect(content().string(not(containsString("BEN-9999"))))
                 .andReturn();
 
         assertThat(result.getRequest().getAttribute(EligibilityAuditInterceptor.ATTR_ELIGIBLE)).isNull();

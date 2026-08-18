@@ -13,9 +13,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -47,34 +50,40 @@ class EligibilityAuditInterceptorTest {
     @DisplayName("afterCompletion logs the stamped benefitId/tier/eligible plus a non-negative latency")
     void logsExpectedFieldsWithLatency() throws InterruptedException {
         interceptor.preHandle(request, response, new Object());
-        stampEligibilityAttributes(true);
+        stampEligibilityAttributes(true, null);
 
         Thread.sleep(5); // ensure a non-zero, measurable elapsed window
 
         interceptor.afterCompletion(request, response, new Object(), null);
 
         ArgumentCaptor<Long> latencyCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(auditLogger).logCheck(org.mockito.ArgumentMatchers.eq("BEN-1042"),
-                org.mockito.ArgumentMatchers.eq("SIGNATURE"),
-                org.mockito.ArgumentMatchers.eq(true),
+        verify(auditLogger).logCheck(eq("BEN-1042"), eq("SIGNATURE"), eq(true), isNull(),
                 latencyCaptor.capture());
         assertThat(latencyCaptor.getValue()).isGreaterThanOrEqualTo(0L);
+    }
+
+    @Test
+    @DisplayName("minimumTier is passed through when stamped (NotEligible outcome)")
+    void passesThroughMinimumTierWhenStamped() {
+        interceptor.preHandle(request, response, new Object());
+        stampEligibilityAttributes(false, "INFINITE");
+
+        interceptor.afterCompletion(request, response, new Object(), null);
+
+        verify(auditLogger).logCheck(eq("BEN-1042"), eq("SIGNATURE"), eq(false), eq("INFINITE"), anyLong());
     }
 
     @Test
     @DisplayName("fires from afterCompletion — runs even once the response is already marked committed/sent")
     void firesAfterResponseIsComplete() {
         interceptor.preHandle(request, response, new Object());
-        stampEligibilityAttributes(true);
+        stampEligibilityAttributes(true, null);
         response.setStatus(200);
         response.setCommitted(true); // simulates the response already having been sent to the client
 
         interceptor.afterCompletion(request, response, new Object(), null);
 
-        verify(auditLogger).logCheck(org.mockito.ArgumentMatchers.eq("BEN-1042"),
-                org.mockito.ArgumentMatchers.eq("SIGNATURE"),
-                org.mockito.ArgumentMatchers.eq(true),
-                anyLong());
+        verify(auditLogger).logCheck(eq("BEN-1042"), eq("SIGNATURE"), eq(true), isNull(), anyLong());
     }
 
     @Test
@@ -85,24 +94,27 @@ class EligibilityAuditInterceptorTest {
 
         interceptor.afterCompletion(request, response, new Object(), null);
 
-        verify(auditLogger, never()).logCheck(anyString(), anyString(), anyBoolean(), anyLong());
+        verify(auditLogger, never()).logCheck(anyString(), anyString(), anyBoolean(), any(), anyLong());
     }
 
     @Test
     @DisplayName("best-effort: a logger failure is swallowed, never rethrown")
     void loggerFailureIsSwallowed() {
         interceptor.preHandle(request, response, new Object());
-        stampEligibilityAttributes(false);
+        stampEligibilityAttributes(false, null);
         doThrow(new RuntimeException("logging backend down"))
-                .when(auditLogger).logCheck(anyString(), anyString(), anyBoolean(), anyLong());
+                .when(auditLogger).logCheck(anyString(), anyString(), anyBoolean(), any(), anyLong());
 
         assertThatCode(() -> interceptor.afterCompletion(request, response, new Object(), null))
                 .doesNotThrowAnyException();
     }
 
-    private void stampEligibilityAttributes(boolean eligible) {
+    private void stampEligibilityAttributes(boolean eligible, String minimumTier) {
         request.setAttribute(EligibilityAuditInterceptor.ATTR_BENEFIT_ID, "BEN-1042");
         request.setAttribute(EligibilityAuditInterceptor.ATTR_TIER, "SIGNATURE");
         request.setAttribute(EligibilityAuditInterceptor.ATTR_ELIGIBLE, eligible);
+        if (minimumTier != null) {
+            request.setAttribute(EligibilityAuditInterceptor.ATTR_MINIMUM_TIER, minimumTier);
+        }
     }
 }

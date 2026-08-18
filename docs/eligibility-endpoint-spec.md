@@ -40,29 +40,41 @@ No request body.
 
 Follows this repo's existing RFC 9457 Problem Details convention (`application/problem+json`, stable `errorCode` enum).
 
+**Revised after review:** the raw `tier` value is hashed + length-only, not echoed verbatim — see the callout below the example. `instance` is redacted for the same reason, matching this repo's existing `MalformedIdentifierException` / `InvalidCurrencyException` treatment.
+
 ```json
 {
   "type": "about:blank",
-  "title": "Bad Request",
+  "title": "tier is not a recognized card tier",
   "status": 400,
-  "detail": "tier 'GOLD' is not a recognized card tier",
   "errorCode": "INVALID_TIER",
-  "instance": "/api/v1/benefits/BEN-1042/eligibility"
+  "details": {
+    "reason": "unrecognized-tier",
+    "tier": { "hash": "v1:...", "length": 4 }
+  },
+  "instance": "/api/v1/benefits/redacted/eligibility"
 }
 ```
 
-Also returned when `tier` is missing entirely (`errorCode: MISSING_TIER`).
+**Why hashed, not echoed (this was a genuine gap in the original version of this spec):** `tier` reaches this handler only *after* failing to match a known `CardTier` — meaning the value carried here is unconstrained, attacker-controlled text, not the "short, bounded-enum-shaped field" the original draft assumed. A request like `?tier=4242424242424242` (Luhn-valid) fails parsing and lands exactly here with the full string intact. This codebase treats any free-text-shaped input from an untrusted client as a potential PAN carrier everywhere else (`ContentGuard`, `MalformedIdentifierException`, `InvalidCurrencyException`) — echoing it raw here would have been the one inconsistent exception to that rule.
+
+Also returned when `tier` is missing entirely (`errorCode: MISSING_TIER`) — the parameter *name* `tier` is echoed in that case (not attacker-controlled; it comes from route metadata, not the request), so no hashing applies there.
 
 ### Response — 404 Not Found (unknown `benefitId`)
+
+**Revised after review, same reasoning as above:** `BenefitId` only requires non-blank + length ≤ 64 (§5 scope-affecting #5 — the real catalog's ID scheme isn't known) — unlike `PurchaseId`, which requires an exact UUID v7 shape and so structurally *cannot* be a PAN. A PAN-shaped string trivially passes `BenefitId`'s validation, and if absent from the catalog (the common case for an attacker probing), would previously have been echoed verbatim in the response body.
 
 ```json
 {
   "type": "about:blank",
-  "title": "Not Found",
+  "title": "Benefit not found",
   "status": 404,
-  "detail": "benefit 'BEN-9999' does not exist",
   "errorCode": "BENEFIT_NOT_FOUND",
-  "instance": "/api/v1/benefits/BEN-9999/eligibility"
+  "details": {
+    "reason": "unknown-benefit",
+    "benefitId": { "hash": "v1:...", "length": 8 }
+  },
+  "instance": "/api/v1/benefits/redacted/eligibility"
 }
 ```
 
@@ -142,6 +154,8 @@ The ticket's stated inputs are only `tier` and `benefitId` — there is no cardh
 
 **When the line fires:** after the response has already been sent to the client, best-effort. Audit logging is observability, not business logic — it must never add latency to, or risk failing, a response the caller is waiting on. Implementation-wise this means the write happens in a post-response hook (a `HandlerInterceptor#afterCompletion`, not inline in the request-handling code path), and any failure in the logging path itself is caught and swallowed (logged at WARN) rather than ever surfacing to the caller. The line only fires for an actual eligibility determination (`eligible: true` or `eligible: false`) — not for the 400/404 error paths, which are already observable via their HTTP response.
 
+**Added after review:** the log line also carries `minimumTier` (populated for a `NotEligible` outcome, absent for `Eligible`). This doesn't change the wire response shape — it's log-only — but it's the whole reason this endpoint exists: turning a "denied" support ticket into a directly-answerable "denied because Platinum, needed Signature" from logs alone, without cross-referencing the benefit catalog.
+
 ## 4. Non-functional requirements
 
 ### 4.1 Latency — p99 < 100ms
@@ -165,6 +179,8 @@ Two distinct failure modes given the in-memory-cache design:
 - **High request load:** in-memory reads don't fail under load the way a DB-backed endpoint would; the main risk is thread-pool/connection saturation from the HTTP layer itself, handled by the existing rate-limiter filter pattern already in this codebase.
 - **Background refresh failure** (DB unreachable when the periodic reload runs): serve the **last known-good in-memory snapshot** and log a WARN — never fail live requests because a background refresh failed. This mirrors the "best-effort, failure-tolerant" warm-up pattern already used elsewhere in this codebase.
 - **Cold start with DB unreachable before the first successful load:** the service should not report itself ready (via the standard Spring Boot readiness probe) until the initial load succeeds — fail closed at the health-check level rather than serving an empty/wrong eligibility map. This is a deliberate choice: for a benefit-gating check, a *wrong* answer (e.g., defaulting to "not eligible" from an empty map, or worse "eligible" from an empty map treated as no-restriction) is worse than the endpoint being briefly unready.
+
+**Corrected after review — "the standard Spring Boot readiness probe" needed a config change, not just a bean.** Spring Boot's implicit `readiness` health group defaults to *only* `readinessState`; a custom `HealthIndicator` is not auto-included merely by existing as a `@Component`. Without `management.endpoint.health.group.readiness.include` explicitly listing it, this indicator (and, discovered along the way, the two pre-existing ones for DB-pool headroom and gateway-trust) would report correctly to `/actuator/health` but be invisible to `/actuator/health/readiness` — the endpoint the load balancer / orchestrator actually consults. Verified empirically via a local boot with `show-details=always`, not just inferred from documentation.
 
 ## 5. Assumptions and open questions
 

@@ -25,10 +25,11 @@ import java.util.Objects;
  *       — by this point there is no response left to fail.</li>
  * </ul>
  *
- * <p>The controller ({@code BenefitEligibilityController}) sets three request
- * attributes ({@link #ATTR_BENEFIT_ID}, {@link #ATTR_TIER}, {@link #ATTR_ELIGIBLE})
- * only when it reaches an actual eligibility determination (the {@code Eligible} /
- * {@code NotEligible} outcomes). {@link #preHandle} stamps the start time so latency
+ * <p>The controller ({@code BenefitEligibilityController}) sets the
+ * {@link #ATTR_BENEFIT_ID}, {@link #ATTR_TIER}, and {@link #ATTR_ELIGIBLE} request
+ * attributes only when it reaches an actual eligibility determination (the
+ * {@code Eligible} / {@code NotEligible} outcomes); {@link #ATTR_MINIMUM_TIER} is
+ * additionally set for {@code NotEligible} only. {@link #preHandle} stamps the start time so latency
  * is measured from "request received" through to "response sent" — the same window
  * the p99 &lt; 100ms NFR describes (spec §4.1) — not just the in-handler compute time.
  *
@@ -46,6 +47,8 @@ public class EligibilityAuditInterceptor implements HandlerInterceptor {
     public static final String ATTR_BENEFIT_ID = "eligibility.audit.benefitId";
     public static final String ATTR_TIER = "eligibility.audit.tier";
     public static final String ATTR_ELIGIBLE = "eligibility.audit.eligible";
+    /** Set only for a NotEligible outcome — absent (not stamped) for Eligible. */
+    public static final String ATTR_MINIMUM_TIER = "eligibility.audit.minimumTier";
 
     private final EligibilityAuditLogger auditLogger;
 
@@ -79,7 +82,8 @@ public class EligibilityAuditInterceptor implements HandlerInterceptor {
         if (startNanos == null || benefitId == null || tier == null || eligible == null) {
             return; // no eligibility determination was reached on this request (see class javadoc)
         }
+        String minimumTier = (String) request.getAttribute(ATTR_MINIMUM_TIER); // null for Eligible, by design
         long latencyMs = (System.nanoTime() - (long) startNanos) / 1_000_000;
-        auditLogger.logCheck((String) benefitId, (String) tier, (boolean) eligible, latencyMs);
+        auditLogger.logCheck((String) benefitId, (String) tier, (boolean) eligible, minimumTier, latencyMs);
     }
 }

@@ -109,7 +109,14 @@ public class BenefitEligibilityCacheAdapter implements BenefitEligibilityCachePo
         }
     }
 
-    @Scheduled(fixedDelayString = "${wex.eligibility.refresh-interval-ms:300000}")
+    // initialDelayString == the refresh interval: without it, Spring's default
+    // @Scheduled behavior fires the first execution almost immediately after context
+    // startup, which would redundantly re-hit the DB right after @PostConstruct's
+    // initialLoad() already did. The first *scheduled* refresh should be a full
+    // interval after that initial load, not near-zero.
+    @Scheduled(
+            initialDelayString = "${wex.eligibility.refresh-interval-ms:300000}",
+            fixedDelayString = "${wex.eligibility.refresh-interval-ms:300000}")
     void scheduledRefresh() {
         try {
             int before = isLoaded() ? snapshot.get().size() : -1;

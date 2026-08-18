@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -17,12 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * eligibility-endpoint-spec.md §7 — full HTTP path against a real Postgres, plus
- * the two behaviours that matter most for this feature's NFR story:
+ * the behaviours that matter most for this feature's NFR and observability story:
  * <ul>
  *   <li>a DB change is reflected only after the next refresh cycle, not before
  *       (proves the in-memory model isn't accidentally per-request DB-backed —
  *       spec §4.1's whole reason for existing);</li>
- *   <li>the readiness health indicator is UP once the cache has loaded.</li>
+ *   <li>the readiness health group genuinely includes {@code benefitEligibility},
+ *       not just "the aggregate status happens to be UP" (Spring Boot's implicit
+ *       readiness group does NOT auto-include custom HealthIndicator beans —
+ *       verified manually via a live local boot; see application.yml's
+ *       management.endpoint.health.group.readiness.include);</li>
+ *   <li>the global {@code X-Correlation-Id} filter applies to this endpoint (spec
+ *       §7's correlation-ID requirement) — not re-tested at the WebMvc-slice level
+ *       since that slice disables filters entirely (addFilters=false), so this IT
+ *       is the only place it's actually exercised for this specific path.</li>
  * </ul>
  *
  * <p>Cold-start-with-DB-down and refresh-failure-keeps-last-snapshot are proven at
@@ -38,10 +49,15 @@ class BenefitEligibilityEndToEndIT extends AbstractPostgresIT {
     @Autowired private JdbcClient jdbcClient;
 
     @DynamicPropertySource
-    static void shortRefreshInterval(DynamicPropertyRegistry registry) {
+    static void testOverrides(DynamicPropertyRegistry registry) {
         // Short enough to observe a refresh within the test's lifetime without
         // making the suite slow.
         registry.add("wex.eligibility.refresh-interval-ms", () -> "1500");
+        // Production default is "when-authorized" (no auth is configured in this
+        // drill, so unauthenticated TestRestTemplate calls would never see the
+        // component breakdown). Scoped to this test only — does not change
+        // production behavior.
+        registry.add("management.endpoint.health.show-details", () -> "always");
     }
 
     @Test
@@ -65,13 +81,14 @@ class BenefitEligibilityEndToEndIT extends AbstractPostgresIT {
     }
 
     @Test
-    @DisplayName("unknown benefit -> 404 BENEFIT_NOT_FOUND")
+    @DisplayName("unknown benefit -> 404 BENEFIT_NOT_FOUND, raw id hashed not echoed (spec §2 review correction)")
     void unknownBenefit() {
         ResponseEntity<String> response = rest.getForEntity(
                 "/api/v1/benefits/BEN-DOES-NOT-EXIST/eligibility?tier=PLATINUM", String.class);
 
         assertThat(response.getStatusCode().value()).isEqualTo(404);
         assertThat(response.getBody()).contains("BENEFIT_NOT_FOUND");
+        assertThat(response.getBody()).doesNotContain("BEN-DOES-NOT-EXIST");
     }
 
     @Test
@@ -110,11 +127,35 @@ class BenefitEligibilityEndToEndIT extends AbstractPostgresIT {
     }
 
     @Test
-    @DisplayName("readiness reports UP once the eligibility cache has loaded")
-    void readinessUpOnceLoaded() {
+    @DisplayName("readiness group genuinely includes benefitEligibility, UP once the cache has loaded — "
+            + "not just \"aggregate status happens to be UP\" (that would pass even for a no-op indicator)")
+    void readinessGroupIncludesBenefitEligibility() {
         ResponseEntity<String> response = rest.getForEntity("/actuator/health/readiness", String.class);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).contains("\"status\":\"UP\"");
+        assertThat(response.getBody()).contains("\"benefitEligibility\":{\"status\":\"UP\"}");
+    }
+
+    @Test
+    @DisplayName("supplied X-Correlation-Id is echoed back on this endpoint (spec §7)")
+    void correlationIdIsEchoedBack() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("X-Correlation-Id", "test-corr-123");
+        ResponseEntity<String> response = rest.exchange(
+                "/api/v1/benefits/BEN-1001/eligibility?tier=PLATINUM",
+                HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getFirst("X-Correlation-Id")).endsWith("-test-corr-123");
+    }
+
+    @Test
+    @DisplayName("absent X-Correlation-Id results in one being generated on this endpoint (spec §7)")
+    void correlationIdIsGeneratedWhenAbsent() {
+        ResponseEntity<String> response = rest.getForEntity(
+                "/api/v1/benefits/BEN-1001/eligibility?tier=PLATINUM", String.class);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getFirst("X-Correlation-Id")).isNotBlank();
     }
 }

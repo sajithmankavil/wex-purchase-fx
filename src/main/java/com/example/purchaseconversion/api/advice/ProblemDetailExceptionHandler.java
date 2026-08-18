@@ -236,23 +236,68 @@ public class ProblemDetailExceptionHandler {
                 Map.of("reason", e.getReason()), null);
     }
 
-    /** eligibility-endpoint-spec.md §3.3 — distinct from "not eligible"; see class-level javadoc there. */
+    /**
+     * eligibility-endpoint-spec.md §3.3 — distinct from "not eligible"; see class-level
+     * javadoc there.
+     *
+     * <p>Review correction: the original version of this handler echoed
+     * {@code benefitId} raw. Unlike {@code PurchaseId} (strict UUID v7 — a PAN-shaped
+     * string can never parse as one, so it's redirected to {@code MalformedIdentifierException}
+     * instead), {@link com.example.purchaseconversion.domain.BenefitId} only requires
+     * non-blank + length ≤ 64 — a Luhn-valid PAN trivially passes that check and, if
+     * absent from the catalog, would have reached here and been echoed verbatim. Hashed
+     * + redacted now, mirroring {@link #onMalformedId} / {@link #onInvalidCurrency}.
+     */
     @ExceptionHandler(BenefitNotFoundException.class)
     public ResponseEntity<ProblemDetail> onBenefitNotFound(BenefitNotFoundException e) {
-        return respond(HttpStatus.NOT_FOUND, "BENEFIT_NOT_FOUND",
+        String raw = e.getBenefitId().value();
+        String hashed = hasher.hash(raw);
+        LOG.warn("benefit_not_found.detected",
+                StructuredArguments.kv("benefitIdHash", hashed),
+                StructuredArguments.kv("benefitIdLength", raw.length()));
+        Map<String, Object> benefitIdDetails = new LinkedHashMap<>();
+        benefitIdDetails.put("hash", hashed);
+        benefitIdDetails.put("length", raw.length());
+        ResponseEntity<ProblemDetail> resp = respond(HttpStatus.NOT_FOUND, "BENEFIT_NOT_FOUND",
                 "Benefit not found",
-                Map.of("benefitId", e.getBenefitId().value()), null);
+                Map.of("reason", "unknown-benefit", "benefitId", benefitIdDetails), null);
+        ProblemDetail body = resp.getBody();
+        if (body != null) {
+            body.setInstance(URI.create("/api/v1/benefits/redacted/eligibility"));
+        }
+        return resp;
     }
 
     /**
-     * eligibility-endpoint-spec.md §3.3 — {@code tier} is a short, bounded-enum-shaped
-     * field, not free text; echoed directly (no hashing needed, unlike currency/id).
+     * eligibility-endpoint-spec.md §3.3.
+     *
+     * <p>Review correction: the original version of this handler echoed {@code tier}
+     * raw, reasoning it was "a short, bounded-enum-shaped field." That reasoning
+     * only holds <em>after</em> successful parsing — the raw query-param value
+     * this exception carries is exactly the input that FAILED to match a known
+     * {@code CardTier}, meaning it's unconstrained attacker-controlled text up to
+     * this point (e.g. {@code ?tier=4242424242424242} fails parsing and lands here
+     * with the full PAN-shaped string intact) — the same risk class as
+     * {@code benefitId} above. Hashed + redacted now for consistency.
      */
     @ExceptionHandler(InvalidTierException.class)
     public ResponseEntity<ProblemDetail> onInvalidTier(InvalidTierException e) {
-        return respond(HttpStatus.BAD_REQUEST, "INVALID_TIER",
+        String raw = e.getTier();
+        String hashed = hasher.hash(raw);
+        LOG.warn("invalid_tier.detected",
+                StructuredArguments.kv("tierHash", hashed),
+                StructuredArguments.kv("tierLength", raw.length()));
+        Map<String, Object> tierDetails = new LinkedHashMap<>();
+        tierDetails.put("hash", hashed);
+        tierDetails.put("length", raw.length());
+        ResponseEntity<ProblemDetail> resp = respond(HttpStatus.BAD_REQUEST, "INVALID_TIER",
                 "tier is not a recognized card tier",
-                Map.of("tier", e.getTier()), null);
+                Map.of("reason", "unrecognized-tier", "tier", tierDetails), null);
+        ProblemDetail body = resp.getBody();
+        if (body != null) {
+            body.setInstance(URI.create("/api/v1/benefits/redacted/eligibility"));
+        }
+        return resp;
     }
 
     // --- Catch-all ---

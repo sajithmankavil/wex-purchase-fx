@@ -44,24 +44,36 @@ class EligibilityAuditLoggerTest {
     }
 
     @Test
-    @DisplayName("logs exactly one line carrying benefitId, tier, eligible, latencyMs")
+    @DisplayName("logs exactly one line carrying benefitId, tier, eligible, minimumTier, latencyMs")
     void logsExpectedFields() {
-        auditLogger.logCheck("BEN-1042", "SIGNATURE", true, 7L);
+        auditLogger.logCheck("BEN-1042", "PLATINUM", false, "SIGNATURE", 7L);
 
         List<String> messages = allMessages();
         assertThat(messages).hasSize(1);
         String line = messages.get(0);
         assertThat(line).contains("benefit_eligibility.checked");
         assertThat(line).contains("benefitId=BEN-1042");
-        assertThat(line).contains("tier=SIGNATURE");
-        assertThat(line).contains("eligible=true");
+        assertThat(line).contains("tier=PLATINUM");
+        assertThat(line).contains("eligible=false");
+        assertThat(line).contains("minimumTier=SIGNATURE");
         assertThat(line).contains("latencyMs=7");
+    }
+
+    @Test
+    @DisplayName("minimumTier is omitted (null) for an Eligible outcome — no gap to report")
+    void minimumTierNullForEligible() {
+        auditLogger.logCheck("BEN-1042", "SIGNATURE", true, null, 7L);
+
+        String line = allMessages().get(0);
+        assertThat(line).contains("eligible=true");
+        assertThat(line).doesNotContain("minimumTier=SIGNATURE");
+        assertThat(line).doesNotContain("minimumTier=PLATINUM");
     }
 
     @Test
     @DisplayName("never carries a cardholder/session/PII field — the contract has no such input (spec §3.4)")
     void neverCarriesCardholderIdentifyingField() {
-        auditLogger.logCheck("BEN-1042", "SIGNATURE", true, 7L);
+        auditLogger.logCheck("BEN-1042", "SIGNATURE", true, null, 7L);
 
         String line = allMessages().get(0);
         assertThat(line).doesNotContainIgnoringCase("cardholder");

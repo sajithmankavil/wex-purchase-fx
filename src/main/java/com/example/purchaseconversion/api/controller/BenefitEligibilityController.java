@@ -36,8 +36,8 @@ import java.util.Objects;
  *
  * <p>Audit logging is deliberately NOT done here — see
  * {@link EligibilityAuditInterceptor}, which fires after the response has been
- * sent. This method's only audit-related job is stamping the three request
- * attributes the interceptor reads.
+ * sent. This method's only audit-related job is stamping the request attributes
+ * the interceptor reads.
  */
 @RestController
 @RequestMapping("/api/v1/benefits")
@@ -79,21 +79,28 @@ public class BenefitEligibilityController {
 
         return switch (result) {
             case EligibilityResult.Eligible eligible ->
-                    respond(request, eligible.benefitId(), eligible.tier(), true);
+                    respond(request, eligible.benefitId(), eligible.tier(), true, null);
             case EligibilityResult.NotEligible notEligible ->
-                    respond(request, notEligible.benefitId(), notEligible.tier(), false);
+                    respond(request, notEligible.benefitId(), notEligible.tier(), false,
+                            notEligible.minimumTier());
             case EligibilityResult.NotFound notFound ->
                     throw new BenefitNotFoundException(notFound.benefitId());
         };
     }
 
     private ResponseEntity<EligibilityResponse> respond(
-            HttpServletRequest request, BenefitId benefitId, CardTier tier, boolean eligible) {
+            HttpServletRequest request, BenefitId benefitId, CardTier tier, boolean eligible,
+            CardTier minimumTier) {
         // Stamped for EligibilityAuditInterceptor#afterCompletion — never read within
         // this request; the interceptor consumes these after the response is sent.
+        // minimumTier is null for Eligible (no gap to report) — the interceptor treats
+        // that as "attribute not stamped" and omits it from the audit line accordingly.
         request.setAttribute(EligibilityAuditInterceptor.ATTR_BENEFIT_ID, benefitId.value());
         request.setAttribute(EligibilityAuditInterceptor.ATTR_TIER, tier.name());
         request.setAttribute(EligibilityAuditInterceptor.ATTR_ELIGIBLE, eligible);
+        if (minimumTier != null) {
+            request.setAttribute(EligibilityAuditInterceptor.ATTR_MINIMUM_TIER, minimumTier.name());
+        }
         return ResponseEntity.ok(new EligibilityResponse(benefitId.value(), tier.name(), eligible));
     }
 }

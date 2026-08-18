@@ -103,6 +103,15 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
+      group:
+        readiness:
+          # Spring Boot's implicit "readiness" group defaults to ONLY readinessState —
+          # a custom HealthIndicator is NOT auto-included just by existing as a bean.
+          # Without this, DbPoolHeadroomHealthIndicator, GatewayRequiredHealthIndicator,
+          # and BenefitEligibilityHealthIndicator are all invisible to
+          # /actuator/health/readiness regardless of what they report (a pre-existing
+          # gap for the first two, caught and fixed here alongside the new one).
+          include: readinessState,dbPoolHeadroom,gatewayRequired,benefitEligibility
   health:
     livenessstate:
       enabled: true

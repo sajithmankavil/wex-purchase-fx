@@ -19,7 +19,6 @@ import com.example.purchaseconversion.domain.Purchase;
 import com.example.purchaseconversion.domain.PurchaseId;
 import com.example.purchaseconversion.observability.DescriptionHasher;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +71,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @Import({ContentGuard.class, ContentGuardAdvice.class, ProblemDetailExceptionHandler.class,
         PurchaseControllerWebMvcTest.HasherConfig.class})
-class PurchaseControllerWebMvcTest {
+class PurchaseControllerWebMvcTest extends AbstractWebMvcTestSupport {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
@@ -80,12 +79,9 @@ class PurchaseControllerWebMvcTest {
     @MockBean private RegisterPurchaseUseCase registerPurchase;
     @MockBean private RetrievePurchaseUseCase retrievePurchase;
     @MockBean private ConvertPurchaseUseCase convertPurchase;
-    // Satisfies WexRateLimiterFilter's constructor (the filter is component-scanned
-    // by the slice but isn't applied — addFilters=false above disables the chain).
-    @MockBean private RateLimiterRegistry rateLimiterRegistry;
-    // Satisfies EligibilityAuditInterceptor's constructor — @WebMvcTest auto-includes
-    // HandlerInterceptor beans regardless of which controller is under test.
-    @MockBean private com.example.purchaseconversion.observability.EligibilityAuditLogger eligibilityAuditLogger;
+    // rateLimiterRegistry + eligibilityAuditLogger mocks are inherited from
+    // AbstractWebMvcTestSupport — see its javadoc for why every @WebMvcTest slice
+    // needs them regardless of which controller is under test.
 
     private static final String VALID_V7_ID = newV7Id();
 
