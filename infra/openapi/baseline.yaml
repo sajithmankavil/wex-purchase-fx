@@ -18,7 +18,53 @@ servers:
 tags:
   - name: Purchases
     description: Stored USD purchase transactions and Treasury-driven currency conversion (FR-001..FR-003).
+  - name: Benefit Eligibility
+    description: Cardholder tier vs. benefit minimum-tier check (eligibility-endpoint-spec.md).
 paths:
+  /api/v1/benefits/{benefitId}/eligibility:
+    get:
+      tags: [Benefit Eligibility]
+      operationId: checkBenefitEligibility
+      summary: Check whether a cardholder tier is eligible for a benefit
+      description: |
+        Minimum-tier model (eligibility-endpoint-spec.md §3.2): eligible iff
+        tier >= the benefit's minimum tier. No auth on this endpoint yet — an
+        explicit pre-production gap (spec §5 scope-affecting #3).
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          description: Opaque benefit-catalog identifier
+          schema: { type: string }
+          example: BEN-1042
+        - name: tier
+          in: query
+          required: true
+          description: Cardholder tier — PLATINUM, SIGNATURE, or INFINITE; case-sensitive
+          schema: { type: string, enum: [PLATINUM, SIGNATURE, INFINITE] }
+          example: SIGNATURE
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EligibilityResponse" }
+        "400":
+          description: INVALID_TIER | MISSING_TIER
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "404":
+          description: BENEFIT_NOT_FOUND
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "500":
+          description: INTERNAL_ERROR
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
   /api/v1/purchases:
     post:
       tags: [Purchases]
@@ -197,6 +243,13 @@ components:
         description: { type: string, example: Coffee }
         transactionDate: { type: string, format: date, example: "2026-05-10" }
         amountUsd: { type: string, example: "123.45" }
+    EligibilityResponse:
+      type: object
+      required: [benefitId, tier, eligible]
+      properties:
+        benefitId: { type: string, example: "BEN-1042" }
+        tier: { type: string, example: "SIGNATURE" }
+        eligible: { type: boolean }
     ConversionResponse:
       type: object
       required: [id, description, transactionDate, amountUsd, targetCurrency, exchangeRate, exchangeRateDate, convertedAmount]
@@ -243,6 +296,10 @@ components:
             - UPSTREAM_BAD_RESPONSE
             - RATE_LIMITED
             - INTERNAL_ERROR
+            - BENEFIT_NOT_FOUND
+            - INVALID_TIER
+            - MISSING_TIER
+            - MISSING_PARAMETER
         instance:
           type: string
           description: Request URI that produced the error.
