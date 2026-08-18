@@ -1,18 +1,20 @@
 package com.example.purchaseconversion.api.controller;
 
 import com.example.purchaseconversion.api.dto.EligibilityResponse;
+import com.example.purchaseconversion.api.interceptor.EligibilityAuditInterceptor;
+import com.example.purchaseconversion.application.eligibility.EligibilityResult;
+import com.example.purchaseconversion.application.exception.BenefitNotFoundException;
 import com.example.purchaseconversion.application.exception.InvalidTierException;
 import com.example.purchaseconversion.application.port.in.CheckEligibilityUseCase;
 import com.example.purchaseconversion.domain.BenefitId;
 import com.example.purchaseconversion.domain.CardTier;
-import com.example.purchaseconversion.observability.EligibilityAuditLogger;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.MediaType;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,9 +29,15 @@ import java.util.Objects;
  * (eligibility-endpoint-spec.md §2).
  *
  * <p>Pure delegation, matching {@code PurchaseController}'s convention: parses and
- * validates the request, defers to the use-case interface, and logs one audit line
- * per call. No business logic and no authentication here — auth is an explicit
- * pre-production gap for this drill (spec §5 scope-affecting #3).
+ * validates the request, defers to the use-case interface, and maps the exhaustive
+ * {@link EligibilityResult} outcome to a response. No business logic and no
+ * authentication here — auth is an explicit pre-production gap for this drill
+ * (spec §5 scope-affecting #3).
+ *
+ * <p>Audit logging is deliberately NOT done here — see
+ * {@link EligibilityAuditInterceptor}, which fires after the response has been
+ * sent. This method's only audit-related job is stamping the three request
+ * attributes the interceptor reads.
  */
 @RestController
 @RequestMapping("/api/v1/benefits")
@@ -37,12 +45,9 @@ import java.util.Objects;
 public class BenefitEligibilityController {
 
     private final CheckEligibilityUseCase checkEligibility;
-    private final EligibilityAuditLogger auditLogger;
 
-    public BenefitEligibilityController(
-            CheckEligibilityUseCase checkEligibility, EligibilityAuditLogger auditLogger) {
+    public BenefitEligibilityController(CheckEligibilityUseCase checkEligibility) {
         this.checkEligibility = Objects.requireNonNull(checkEligibility, "checkEligibility must not be null");
-        this.auditLogger = Objects.requireNonNull(auditLogger, "auditLogger must not be null");
     }
 
     @GetMapping("/{benefitId}/eligibility")
@@ -61,21 +66,34 @@ public class BenefitEligibilityController {
                     content = @Content(mediaType = "application/problem+json"))
     })
     public ResponseEntity<EligibilityResponse> checkEligibility(
+            HttpServletRequest request,
             @Parameter(description = "Opaque benefit-catalog identifier", required = true, example = "BEN-1042")
             @PathVariable("benefitId") String benefitIdRaw,
             @Parameter(description = "Cardholder tier — PLATINUM, SIGNATURE, or INFINITE; case-sensitive",
                     required = true, example = "SIGNATURE")
             @RequestParam("tier") String tierRaw) {
-        long startNanos = System.nanoTime();
-
         BenefitId benefitId = BenefitId.of(benefitIdRaw);
         CardTier tier = CardTier.parse(tierRaw).orElseThrow(() -> new InvalidTierException(tierRaw));
 
-        boolean eligible = checkEligibility.check(benefitId, tier);
+        EligibilityResult result = checkEligibility.check(benefitId, tier);
 
-        long latencyMs = (System.nanoTime() - startNanos) / 1_000_000;
-        auditLogger.logCheck(benefitId.value(), tier.name(), eligible, latencyMs);
+        return switch (result) {
+            case EligibilityResult.Eligible eligible ->
+                    respond(request, eligible.benefitId(), eligible.tier(), true);
+            case EligibilityResult.NotEligible notEligible ->
+                    respond(request, notEligible.benefitId(), notEligible.tier(), false);
+            case EligibilityResult.NotFound notFound ->
+                    throw new BenefitNotFoundException(notFound.benefitId());
+        };
+    }
 
+    private ResponseEntity<EligibilityResponse> respond(
+            HttpServletRequest request, BenefitId benefitId, CardTier tier, boolean eligible) {
+        // Stamped for EligibilityAuditInterceptor#afterCompletion — never read within
+        // this request; the interceptor consumes these after the response is sent.
+        request.setAttribute(EligibilityAuditInterceptor.ATTR_BENEFIT_ID, benefitId.value());
+        request.setAttribute(EligibilityAuditInterceptor.ATTR_TIER, tier.name());
+        request.setAttribute(EligibilityAuditInterceptor.ATTR_ELIGIBLE, eligible);
         return ResponseEntity.ok(new EligibilityResponse(benefitId.value(), tier.name(), eligible));
     }
 }

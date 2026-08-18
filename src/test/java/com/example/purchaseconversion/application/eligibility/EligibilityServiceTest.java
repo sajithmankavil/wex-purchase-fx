@@ -1,6 +1,5 @@
 package com.example.purchaseconversion.application.eligibility;
 
-import com.example.purchaseconversion.application.exception.BenefitNotFoundException;
 import com.example.purchaseconversion.application.port.out.BenefitEligibilityCachePort;
 import com.example.purchaseconversion.domain.BenefitId;
 import com.example.purchaseconversion.domain.CardTier;
@@ -33,37 +32,44 @@ class EligibilityServiceTest {
     }
 
     @Test
-    @DisplayName("eligible when cardholder tier meets the benefit's minimum")
+    @DisplayName("Eligible when cardholder tier meets the benefit's minimum")
     void eligibleWhenTierMeetsMinimum() {
         when(cache.minimumTierFor(BENEFIT_ID)).thenReturn(Optional.of(CardTier.SIGNATURE));
 
-        assertThat(service.check(BENEFIT_ID, CardTier.INFINITE)).isTrue();
+        EligibilityResult result = service.check(BENEFIT_ID, CardTier.INFINITE);
+
+        assertThat(result).isEqualTo(new EligibilityResult.Eligible(BENEFIT_ID, CardTier.INFINITE));
     }
 
     @Test
-    @DisplayName("not eligible when cardholder tier is below the benefit's minimum")
+    @DisplayName("NotEligible, carrying the minimumTier, when cardholder tier is below it")
     void notEligibleWhenTierBelowMinimum() {
         when(cache.minimumTierFor(BENEFIT_ID)).thenReturn(Optional.of(CardTier.INFINITE));
 
-        assertThat(service.check(BENEFIT_ID, CardTier.PLATINUM)).isFalse();
+        EligibilityResult result = service.check(BENEFIT_ID, CardTier.PLATINUM);
+
+        assertThat(result).isEqualTo(
+                new EligibilityResult.NotEligible(BENEFIT_ID, CardTier.PLATINUM, CardTier.INFINITE));
     }
 
     @Test
-    @DisplayName("eligible at the exact boundary (inclusive)")
+    @DisplayName("Eligible at the exact boundary (inclusive)")
     void eligibleAtExactBoundary() {
         when(cache.minimumTierFor(BENEFIT_ID)).thenReturn(Optional.of(CardTier.SIGNATURE));
 
-        assertThat(service.check(BENEFIT_ID, CardTier.SIGNATURE)).isTrue();
+        EligibilityResult result = service.check(BENEFIT_ID, CardTier.SIGNATURE);
+
+        assertThat(result).isEqualTo(new EligibilityResult.Eligible(BENEFIT_ID, CardTier.SIGNATURE));
     }
 
     @Test
-    @DisplayName("unknown benefit raises BenefitNotFoundException (spec §3.3)")
-    void unknownBenefitThrows() {
+    @DisplayName("NotFound when the benefit is unknown to the cache (spec §3.3) — no exception thrown")
+    void unknownBenefitReturnsNotFound() {
         when(cache.minimumTierFor(BENEFIT_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.check(BENEFIT_ID, CardTier.PLATINUM))
-                .isInstanceOf(BenefitNotFoundException.class)
-                .satisfies(t -> assertThat(((BenefitNotFoundException) t).getBenefitId()).isEqualTo(BENEFIT_ID));
+        EligibilityResult result = service.check(BENEFIT_ID, CardTier.PLATINUM);
+
+        assertThat(result).isEqualTo(new EligibilityResult.NotFound(BENEFIT_ID));
     }
 
     @Test

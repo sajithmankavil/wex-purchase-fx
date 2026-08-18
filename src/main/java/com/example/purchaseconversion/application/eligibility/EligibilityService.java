@@ -1,6 +1,5 @@
 package com.example.purchaseconversion.application.eligibility;
 
-import com.example.purchaseconversion.application.exception.BenefitNotFoundException;
 import com.example.purchaseconversion.application.port.in.CheckEligibilityUseCase;
 import com.example.purchaseconversion.application.port.out.BenefitEligibilityCachePort;
 import com.example.purchaseconversion.domain.BenefitId;
@@ -8,6 +7,7 @@ import com.example.purchaseconversion.domain.CardTier;
 import com.example.purchaseconversion.domain.EligibilityPolicy;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Application service for the cardholder benefit-eligibility check
@@ -28,11 +28,17 @@ public final class EligibilityService implements CheckEligibilityUseCase {
     }
 
     @Override
-    public boolean check(BenefitId benefitId, CardTier tier) {
+    public EligibilityResult check(BenefitId benefitId, CardTier tier) {
         Objects.requireNonNull(benefitId, "benefitId must not be null");
         Objects.requireNonNull(tier, "tier must not be null");
-        CardTier minimumTier = cache.minimumTierFor(benefitId)
-                .orElseThrow(() -> new BenefitNotFoundException(benefitId));
-        return EligibilityPolicy.isEligible(tier, minimumTier);
+
+        Optional<CardTier> minimumTier = cache.minimumTierFor(benefitId);
+        if (minimumTier.isEmpty()) {
+            return new EligibilityResult.NotFound(benefitId);
+        }
+        if (EligibilityPolicy.isEligible(tier, minimumTier.get())) {
+            return new EligibilityResult.Eligible(benefitId, tier);
+        }
+        return new EligibilityResult.NotEligible(benefitId, tier, minimumTier.get());
     }
 }

@@ -83,6 +83,9 @@ class PurchaseControllerWebMvcTest {
     // Satisfies WexRateLimiterFilter's constructor (the filter is component-scanned
     // by the slice but isn't applied — addFilters=false above disables the chain).
     @MockBean private RateLimiterRegistry rateLimiterRegistry;
+    // Satisfies EligibilityAuditInterceptor's constructor — @WebMvcTest auto-includes
+    // HandlerInterceptor beans regardless of which controller is under test.
+    @MockBean private com.example.purchaseconversion.observability.EligibilityAuditLogger eligibilityAuditLogger;
 
     private static final String VALID_V7_ID = newV7Id();
 

@@ -1,5 +1,6 @@
 package com.example.purchaseconversion.application.port.in;
 
+import com.example.purchaseconversion.application.eligibility.EligibilityResult;
 import com.example.purchaseconversion.domain.BenefitId;
 import com.example.purchaseconversion.domain.CardTier;
 
@@ -10,10 +11,8 @@ import com.example.purchaseconversion.domain.CardTier;
 public interface CheckEligibilityUseCase {
 
     /**
-     * Returns whether a cardholder of {@code tier} is eligible for {@code benefitId}.
-     *
-     * @throws com.example.purchaseconversion.application.exception.BenefitNotFoundException
-     *         if {@code benefitId} is not known to the catalog (spec §3.3 — maps to 404).
+     * Returns the eligibility outcome for a cardholder of {@code tier} against
+     * {@code benefitId} — exactly one of {@link EligibilityResult}'s three variants.
      */
-    boolean check(BenefitId benefitId, CardTier tier);
+    EligibilityResult check(BenefitId benefitId, CardTier tier);
 }

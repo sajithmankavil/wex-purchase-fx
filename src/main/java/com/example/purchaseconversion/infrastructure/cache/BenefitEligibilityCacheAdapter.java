@@ -8,6 +8,7 @@ import com.example.purchaseconversion.infrastructure.persistence.BenefitEligibil
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -44,17 +45,39 @@ import java.util.stream.Collectors;
  * failure during a later scheduled refresh is logged at WARN and the previous
  * snapshot is kept in place — live requests are never failed because a background
  * refresh failed (spec §4.3).
+ *
+ * <h2>Refresh interval</h2>
+ *
+ * <p>Configurable via {@code wex.eligibility.refresh-interval-ms}, default 5 minutes
+ * (300,000ms) — small, mostly-static reference data doesn't need tighter freshness,
+ * and 5 minutes bounds the "just wrote a row, why isn't it showing up yet" staleness
+ * window to something a human debugging it would expect. The floor is hard-enforced
+ * at {@link #MIN_REFRESH_INTERVAL_MS} (1 minute): a misconfigured near-zero value
+ * would turn this into an accidental per-request-ish DB hammer, defeating the whole
+ * point of the in-memory design (spec §4.1). Startup fails fast via
+ * {@link IllegalArgumentException} rather than silently clamping, so a bad value is
+ * caught in review/CI rather than discovered as unexplained DB load in production.
  */
 @Component
 public class BenefitEligibilityCacheAdapter implements BenefitEligibilityCachePort {
 
     private static final Logger LOG = LoggerFactory.getLogger(BenefitEligibilityCacheAdapter.class);
 
+    /** Hard floor — see class javadoc "Refresh interval". */
+    static final long MIN_REFRESH_INTERVAL_MS = 60_000L;
+
     private final BenefitEligibilityRepoAdapter repository;
     private final AtomicReference<Map<BenefitId, CardTier>> snapshot = new AtomicReference<>();
 
-    public BenefitEligibilityCacheAdapter(BenefitEligibilityRepoAdapter repository) {
+    public BenefitEligibilityCacheAdapter(
+            BenefitEligibilityRepoAdapter repository,
+            @Value("${wex.eligibility.refresh-interval-ms:300000}") long refreshIntervalMs) {
         this.repository = Objects.requireNonNull(repository, "repository must not be null");
+        if (refreshIntervalMs < MIN_REFRESH_INTERVAL_MS) {
+            throw new IllegalArgumentException(
+                    "wex.eligibility.refresh-interval-ms must be >= " + MIN_REFRESH_INTERVAL_MS
+                            + "; got " + refreshIntervalMs);
+        }
     }
 
     @Override
