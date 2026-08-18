@@ -1,10 +1,12 @@
 package com.example.purchaseconversion.api.advice;
 
 import com.example.purchaseconversion.api.advice.exception.PanPatternDetectedException;
+import com.example.purchaseconversion.application.exception.BenefitNotFoundException;
 import com.example.purchaseconversion.application.exception.ConversionRateNotAvailableException;
 import com.example.purchaseconversion.application.exception.DomainException;
 import com.example.purchaseconversion.application.exception.FutureDateException;
 import com.example.purchaseconversion.application.exception.InvalidCurrencyException;
+import com.example.purchaseconversion.application.exception.InvalidTierException;
 import com.example.purchaseconversion.application.exception.MalformedIdentifierException;
 import com.example.purchaseconversion.application.exception.PurchaseNotFoundException;
 import com.example.purchaseconversion.application.exception.UpstreamBadResponseException;
@@ -24,6 +26,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -104,6 +107,21 @@ public class ProblemDetailExceptionHandler {
     public ResponseEntity<ProblemDetail> onUnreadableBody(HttpMessageNotReadableException e) {
         return respond(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED",
                 "Request body could not be parsed", Map.of("reason", "unreadable-body"), null);
+    }
+
+    /**
+     * Shared across every controller with a required {@code @RequestParam}. The
+     * eligibility endpoint's missing-{@code tier} case (spec §2) gets the specific
+     * {@code MISSING_TIER} errorCode it documents; any other missing-required-param
+     * case (e.g. the purchases endpoint's {@code currency}) gets the generic
+     * {@code MISSING_PARAMETER} rather than a misleading tier-specific code.
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ProblemDetail> onMissingParameter(MissingServletRequestParameterException e) {
+        String errorCode = "tier".equals(e.getParameterName()) ? "MISSING_TIER" : "MISSING_PARAMETER";
+        return respond(HttpStatus.BAD_REQUEST, errorCode,
+                "Required parameter is missing",
+                Map.of("parameter", e.getParameterName()), null);
     }
 
     // --- Content guard ---
@@ -216,6 +234,70 @@ public class ProblemDetailExceptionHandler {
         return respond(HttpStatus.BAD_GATEWAY, "UPSTREAM_BAD_RESPONSE",
                 "Upstream Treasury returned a non-conformant payload",
                 Map.of("reason", e.getReason()), null);
+    }
+
+    /**
+     * eligibility-endpoint-spec.md §3.3 — distinct from "not eligible"; see class-level
+     * javadoc there.
+     *
+     * <p>Review correction: the original version of this handler echoed
+     * {@code benefitId} raw. Unlike {@code PurchaseId} (strict UUID v7 — a PAN-shaped
+     * string can never parse as one, so it's redirected to {@code MalformedIdentifierException}
+     * instead), {@link com.example.purchaseconversion.domain.BenefitId} only requires
+     * non-blank + length ≤ 64 — a Luhn-valid PAN trivially passes that check and, if
+     * absent from the catalog, would have reached here and been echoed verbatim. Hashed
+     * + redacted now, mirroring {@link #onMalformedId} / {@link #onInvalidCurrency}.
+     */
+    @ExceptionHandler(BenefitNotFoundException.class)
+    public ResponseEntity<ProblemDetail> onBenefitNotFound(BenefitNotFoundException e) {
+        String raw = e.getBenefitId().value();
+        String hashed = hasher.hash(raw);
+        LOG.warn("benefit_not_found.detected",
+                StructuredArguments.kv("benefitIdHash", hashed),
+                StructuredArguments.kv("benefitIdLength", raw.length()));
+        Map<String, Object> benefitIdDetails = new LinkedHashMap<>();
+        benefitIdDetails.put("hash", hashed);
+        benefitIdDetails.put("length", raw.length());
+        ResponseEntity<ProblemDetail> resp = respond(HttpStatus.NOT_FOUND, "BENEFIT_NOT_FOUND",
+                "Benefit not found",
+                Map.of("reason", "unknown-benefit", "benefitId", benefitIdDetails), null);
+        ProblemDetail body = resp.getBody();
+        if (body != null) {
+            body.setInstance(URI.create("/api/v1/benefits/redacted/eligibility"));
+        }
+        return resp;
+    }
+
+    /**
+     * eligibility-endpoint-spec.md §3.3.
+     *
+     * <p>Review correction: the original version of this handler echoed {@code tier}
+     * raw, reasoning it was "a short, bounded-enum-shaped field." That reasoning
+     * only holds <em>after</em> successful parsing — the raw query-param value
+     * this exception carries is exactly the input that FAILED to match a known
+     * {@code CardTier}, meaning it's unconstrained attacker-controlled text up to
+     * this point (e.g. {@code ?tier=4242424242424242} fails parsing and lands here
+     * with the full PAN-shaped string intact) — the same risk class as
+     * {@code benefitId} above. Hashed + redacted now for consistency.
+     */
+    @ExceptionHandler(InvalidTierException.class)
+    public ResponseEntity<ProblemDetail> onInvalidTier(InvalidTierException e) {
+        String raw = e.getTier();
+        String hashed = hasher.hash(raw);
+        LOG.warn("invalid_tier.detected",
+                StructuredArguments.kv("tierHash", hashed),
+                StructuredArguments.kv("tierLength", raw.length()));
+        Map<String, Object> tierDetails = new LinkedHashMap<>();
+        tierDetails.put("hash", hashed);
+        tierDetails.put("length", raw.length());
+        ResponseEntity<ProblemDetail> resp = respond(HttpStatus.BAD_REQUEST, "INVALID_TIER",
+                "tier is not a recognized card tier",
+                Map.of("reason", "unrecognized-tier", "tier", tierDetails), null);
+        ProblemDetail body = resp.getBody();
+        if (body != null) {
+            body.setInstance(URI.create("/api/v1/benefits/redacted/eligibility"));
+        }
+        return resp;
     }
 
     // --- Catch-all ---

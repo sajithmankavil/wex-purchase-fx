@@ -1,7 +1,10 @@
 package com.example.purchaseconversion.config;
 
 import com.example.purchaseconversion.application.conversion.ConversionService;
+import com.example.purchaseconversion.application.eligibility.EligibilityService;
+import com.example.purchaseconversion.application.port.in.CheckEligibilityUseCase;
 import com.example.purchaseconversion.application.port.in.ConvertPurchaseUseCase;
+import com.example.purchaseconversion.application.port.out.BenefitEligibilityCachePort;
 import com.example.purchaseconversion.application.port.out.ClockPort;
 import com.example.purchaseconversion.application.port.out.CurrencyAliasPort;
 import com.example.purchaseconversion.application.port.out.ExchangeRateHotCachePort;
@@ -60,6 +63,11 @@ public class WexConfig {
     @Bean
     public PurchaseService purchaseService(PurchaseRepositoryPort purchaseRepository, ClockPort clock) {
         return new PurchaseService(purchaseRepository, clock);
+    }
+
+    @Bean
+    public CheckEligibilityUseCase checkEligibilityUseCase(BenefitEligibilityCachePort cache) {
+        return new EligibilityService(cache);
     }
 
     @Bean
