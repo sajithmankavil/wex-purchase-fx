@@ -60,14 +60,22 @@ class EligibilityAuditLoggerTest {
     }
 
     @Test
-    @DisplayName("minimumTier is omitted (null) for an Eligible outcome — no gap to report")
+    @DisplayName("minimumTier renders as null for an Eligible outcome — no gap to report")
     void minimumTierNullForEligible() {
         auditLogger.logCheck("BEN-1042", "SIGNATURE", true, null, 7L);
 
         String line = allMessages().get(0);
         assertThat(line).contains("eligible=true");
-        assertThat(line).doesNotContain("minimumTier=SIGNATURE");
-        assertThat(line).doesNotContain("minimumTier=PLATINUM");
+        // Asserting the literal rendered value (not just "doesn't contain a specific
+        // tier name") closes a real gap: StructuredArguments.kv renders a null value
+        // as "minimumTier=null", not by omitting the key. A prior version of this test
+        // only checked doesNotContain("minimumTier=SIGNATURE")/("...PLATINUM"), which
+        // would have let a regression that leaked minimumTier=INFINITE specifically
+        // pass silently — CardTier is a closed 3-value enum, so exhaustiveness matters.
+        assertThat(line).contains("minimumTier=null");
+        for (String tier : new String[] {"PLATINUM", "SIGNATURE", "INFINITE"}) {
+            assertThat(line).doesNotContain("minimumTier=" + tier);
+        }
     }
 
     @Test
